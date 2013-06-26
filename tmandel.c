@@ -60,5 +60,4 @@ void main()
 
 	}
 	calc_pixel_value(nx, ny, coordArray, maxiter);
-
 }

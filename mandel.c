@@ -35,7 +35,7 @@ void main()
 
 	for (iy = 0; iy <= (ny-1); iy++)
 	{		
-		cy = ymin + iy * (ymax - ymin) /(double)(ny-1);
+		cy = (ymin + iy * (ymax - ymin) /(double)(ny-1));
 		for (ix = 0; ix <= (nx-1); ix++)
 		{
 				
@@ -45,7 +45,7 @@ void main()
 			y2 = 0.0;
 			iter = 0;
 
-			cx = xmin + ix * (xmax - xmin) / (double)(nx-1);
+			cx = (xmin + ix * (xmax - xmin) / (double)(nx-1));
 
 			for (iter = 1; iter<maxiter; iter++)
 			{
