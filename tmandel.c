@@ -5,6 +5,7 @@
 #include <setjmp.h>
 #include "tiffio.h"
 
+
 void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter);
 
 void colorpoint(int red, int green, int blue)
