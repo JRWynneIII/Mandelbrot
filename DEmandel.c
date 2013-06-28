@@ -31,7 +31,7 @@ void main()
 		{
 			cx = xmin +ix*(xmax-xmin)/(ny-1);
 			dist = MSetDist(cx,cy,maxiter);
-			if (dist < delta)
+			if (dist <= delta)
 				MSet[ix][iy] = 1;
 			else
 				MSet[ix][iy] = 0;

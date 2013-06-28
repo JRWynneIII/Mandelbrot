@@ -18,7 +18,7 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 		for (a = 0; a<nx-1; a++)
 		{
 			pointiter = coordArray[a][i];
-			if (pointiter == maxiter)			//COLOR HERE
+			if (pointiter == 1)			//COLOR HERE
 				m_image_data[elecount] = 0;
 			else 
 				m_image_data[elecount] = 255;
@@ -27,7 +27,7 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 	}
 //	for(i =0;i<=(nx*ny); i++){
 //		printf("%d\n", m_image_data[i]);}
-//	write_tiff_bilevel(outputname, nx, ny, m_image_data);
+	write_tiff_bilevel(outputname, nx, ny, m_image_data);
 	
 }
 
