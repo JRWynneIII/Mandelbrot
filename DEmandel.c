@@ -11,7 +11,7 @@ double MSetDist(double cx, double cy, int maxiter);
 void main()
 {
 	int nx=1000, ny=1000;			//Image resolution: x,y
-	bool MSet[nx][ny];
+	int MSet[nx][ny];
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	int maxiter= 100;			//max number of iterations
@@ -24,10 +24,10 @@ void main()
 	double temp;
 		
 	int delta = threshold*(xmax-xmin)/(nx-1);
-	for (iy=0; iy<ny-1; iy++)
+	for (iy=0; iy<ny; iy++)
 	{
 		cy = ymin+iy*(ymax-ymin)/(ny-1);
-		for (ix = 0; ix<nx-1; ix++)
+		for (ix = 0; ix<nx; ix++)
 		{
 			cx = xmin +ix*(xmax-xmin)/(ny-1);
 			dist = MSetDist(cx,cy,maxiter);
@@ -35,6 +35,7 @@ void main()
 				MSet[ix][iy] = 1;
 			else
 				MSet[ix][iy] = 0;
+			printf("%d\n", MSet[ix][iy]);
 		}
 	}
 	calc_pixel_value(nx,ny,MSet,maxiter);

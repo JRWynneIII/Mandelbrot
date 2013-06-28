@@ -12,11 +12,10 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 	int i = 0;
 	int elecount = 0;
 	int a = 0;
-	//double grey = (0.3*r) + (0.59*g) + (0.11*b);
 	char outputname[10] = "output.tif";
-	for (i = 0; i<ny; i++)
+	for (i = 0; i<ny-1; i++)
 	{
-		for (a = 0; a<nx; a++)
+		for (a = 0; a<nx-1; a++)
 		{
 			pointiter = coordArray[a][i];
 			if (pointiter == maxiter)			//COLOR HERE
@@ -24,12 +23,11 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 			else 
 				m_image_data[elecount] = 255;
 			elecount++;	
-	//		printf("%d\n", pointiter);	
 		}
 	}
-	for(i =0;i<=(nx*ny); i++){
-		printf("%d\n", m_image_data[i]);}
-	write_tiff_bilevel(outputname, nx, ny, m_image_data);
+//	for(i =0;i<=(nx*ny); i++){
+//		printf("%d\n", m_image_data[i]);}
+//	write_tiff_bilevel(outputname, nx, ny, m_image_data);
 	
 }
 
