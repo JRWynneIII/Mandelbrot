@@ -14,76 +14,100 @@ void main()
 	int MSet[nx][ny];
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
-	int maxiter= 100;			//max number of iterations
-	int threshold;
-	double dist;
+	int maxiter= 10000;			//max number of iterations
+	double threshold = 1.0;
+	double dist = 0.0;
 	int ix, iy;
 	double cx, cy;
-	int iter;
-	double x, y, x2, y2;		//point coordinates and squares
-	double temp;
-		
-	int delta = threshold*(xmax-xmin)/(nx-1);
+	int iter, i = 0;
+	double x,y,x2,y2 = 0.0;
+	double temp=0.0;
+	double xder=0.0;
+	double yder=0.0;
+	double xorbit= 0.0;
+	double yorbit= 0.0;
+	long huge = 100000;
+	bool flag = false;
+	const long overflow = 400000;
+	double delta = threshold*(xmax-xmin)/(double)(nx-1);
+
 	for (iy=0; iy<ny; iy++)
 	{
-		cy = ymin+iy*(ymax-ymin)/(ny-1);
+		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 		for (ix = 0; ix<nx; ix++)
 		{
-			cx = xmin +ix*(xmax-xmin)/(ny-1);
-			dist = MSetDist(cx,cy,maxiter);
+			iter, i = 0;
+			x,y,x2,y2,temp,xder,yder,xorbit,yorbit,dist = 0.0;
+			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
+	//		dist = MSetDist(cx,cy,maxiter);
+
+			for (iter = 0; iter<maxiter && (x2+y2 < huge) && flag!=true; iter++)
+			{
+				//Begin normal mandel set point in/out process
+				temp = x2-y2 +cx;
+				y = 2.0*x*y+cy;
+				x = temp;
+				x2 = x*x;
+				y2 = y*y;
+
+				if (x2+y2>huge)			//if the point escapes, find the distance from the set
+				{
+					temp = 2.0*(xorbit*xder-yorbit*yder)+1;
+					yder = 2.0*(yorbit*xder+xorbit*yder);
+					xder = temp;
+					flag = fmax(fabs(xder), fabs(yder)) > overflow;
+					xorbit = x;
+					yorbit = y;
+					dist = log(x2+y2)*sqrt(x2+y2)/(double)(sqrt(xder*xder+yder*yder));  
+					printf("%d\n", dist);
+					break;
+				}
+			}
 			if (dist <= delta)
 				MSet[ix][iy] = 1;
 			else
 				MSet[ix][iy] = 0;
-			printf("%d\n", MSet[ix][iy]);
 		}
 	}
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }
-
+/*
 double MSetDist(double cx, double cy, int maxiter)
 {
 	int iter, i = 0;
 	double x,y,x2,y2 = 0.0;
-	int temp;
-	int xder;
-	double yder;
-	double xorbit[maxiter+1];
-	double yorbit[maxiter+1];
+	double temp=0.0;
+	double xder=0.0;
+	double yder=0.0;
+	double xorbit= 0.0;
+	double yorbit= 0.0;
 	double dist = 0.0;
 	long huge = 100000;
-	bool flag;
-	const long overflow;
+	bool flag = false;
+	const long overflow = 400000;
 
-	while (iter<maxiter && (x2+y2 < huge))
+	while (iter<maxiter && (x2+y2 < huge) && flag!=true)
 	{
+		//Begin normal mandel set point in/out process
 		temp = x2-y2 +cx;
-		y = 2*x*y+cy;
+		y = 2.0*x*y+cy;
 		x = temp;
 		x2 = x*x;
 		y2 = y*y;
-		iter++;
-		xorbit[iter] = x;
-		yorbit[iter] = y;
-	}
-
-	if (x2+y2>huge)
-	{
-		xder = yder = 0;
-		i = 0;
-		flag = false;
-		while (i<iter && flag!=true)
+		if (x2+y2>huge)			//if the point escapes, find the distance from the set
 		{
-			temp = 2*(xorbit[i]*xder-yorbit[i]*yder)+1;
-			yder = 2*(yorbit[i]*xder+xorbit[i]*yder);
+			temp = 2.0*(xorbit*xder-yorbit*yder)+1;
+			yder = 2.0*(yorbit*xder+xorbit*yder);
 			xder = temp;
 			flag = fmax(fabs(xder), fabs(yder)) > overflow;
-			i++;
-		}
-		if (x2+y2>huge)
-		{
+			xorbit = x;
+			yorbit = y;
 			dist = log(x2+y2)*sqrt(x2+y2)/sqrt(xder*xder+yder*yder);  
-		}	
+			printf("%d\n", flag);
+			break;
+		}
+		iter++;
 	}
+
 	return dist;
-}
+}*/

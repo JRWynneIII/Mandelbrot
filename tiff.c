@@ -13,9 +13,9 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 	int elecount = 0;
 	int a = 0;
 	char outputname[10] = "output.tif";
-	for (i = 0; i<ny-1; i++)
+	for (i = 0; i<ny; i++)
 	{
-		for (a = 0; a<nx-1; a++)
+		for (a = 0; a<nx; a++)
 		{
 			pointiter = coordArray[a][i];
 			if (pointiter == 1)			//COLOR HERE
