@@ -5,8 +5,7 @@
 #include <setjmp.h>
 #include "tiffio.h"
 #include <stdbool.h>
-
-double MSetDist(double cx, double cy, int maxiter);
+#include <float.h>
 
 void main()
 {
@@ -15,7 +14,7 @@ void main()
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	int maxiter= 2000;			//max number of iterations
-	double threshold = 4.0;
+	double threshold = 1.0;
 	double dist = 0.0;
 	int ix, iy;
 	double cx, cy;
@@ -25,10 +24,12 @@ void main()
 	double xder=0.0;
 	double yder=0.0;
 	double xorbit[maxiter];
+	xorbit[0] = 0;
 	double yorbit[maxiter];
-	double huge = 10000;
+	yorbit[0] = 0;
+	double huge = 100000;
 	bool flag = false;
-	const double overflow = 1e300;
+	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 
 	for (iy=0; iy<=(ny-1); iy++)
@@ -48,7 +49,7 @@ void main()
 			dist = 0.0;
 			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
 
-			for (iter = 0; iter<=maxiter; iter++)
+			for (iter =0; iter<=maxiter; iter++)
 			{
 				//Begin normal mandel level set process
 				temp = x2-y2 +cx;
@@ -56,12 +57,12 @@ void main()
 				x = temp;
 				x2 = x*x;
 				y2 = y*y;
-				xorbit[iter]=x;
-				xorbit[iter]=y;
-				if (x2+y2>10000.0) break;	//if point escapes then break to next loop
+				xorbit[iter+1]=x;
+				yorbit[iter+1]=y;
+				if (x2+y2>huge) break;	//if point escapes then break to next loop
 			}
 			//if the point escapes, find the distance from the set
-			if (x2+y2>=10000.0)
+			if (x2+y2>=huge)
 			{
 				xder, yder = 0;
 				i = 0;
@@ -76,18 +77,18 @@ void main()
 				}
 				if (flag == false)
 				{
-					dist=(log(x2+y2)*sqrt(x2+y2))/(double)(sqrt(xder*xder+yder*yder)); 
-					printf("DIST:%d\n", dist);
+					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
+					//printf("DIST:%d\n", dist);
 				}	
 
 			}
 			
-			if (dist <= delta)
+			if (dist < delta)
 				MSet[ix][iy] = 1;
 			else
 				MSet[ix][iy] = 0;
 		
-			printf("MSET:%d\n",MSet[ix][iy]);
+			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 	}
 	calc_pixel_value(nx,ny,MSet,maxiter);
