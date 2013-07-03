@@ -9,7 +9,7 @@
 
 void main()
 {
-	int nx=1000, ny=1000;			//Image resolution: x,y
+	int nx=2000, ny=2000;			//Image resolution: x,y
 	int MSet[nx][ny];
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
