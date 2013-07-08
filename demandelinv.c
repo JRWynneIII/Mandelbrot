@@ -9,7 +9,7 @@
 
 void main()
 {
-	int nx=2000, ny=2000;			//Image resolution: x,y
+	int nx=1000, ny=1000;			//Image resolution: x,y
 	int MSet[nx][ny];
 	int xmin=-2, xmax= 4; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
@@ -49,8 +49,9 @@ void main()
 			cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
 			double tempcx = cx;
-			cx = cx/(cy*cy+cx*cx);
-			cy = -1*cy/(tempcx*tempcx+cy*cy);
+			//Make the points plot on the inverse complex plane
+			//cx = cx/(cy*cy+cx*cx);
+			//cy = -1*cy/(tempcx*tempcx+cy*cy);
 			for (iter =0; iter<=maxiter; iter++)
 			{
 				//Begin normal mandel level set process
@@ -89,7 +90,7 @@ void main()
 				MSet[ix][iy] = 1;
 			else
 				MSet[ix][iy] = 0;
-		
+				
 			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 	}
