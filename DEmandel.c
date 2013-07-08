@@ -7,13 +7,16 @@
 #include <stdbool.h>
 #include <float.h>
 
-void main()
+void main(int argc, int *argv[])
 {
 	int nx=2000, ny=2000;			//Image resolution: x,y
-	int MSet[nx][ny];
+	int maxiter= 2000;			//max number of iterations
+	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
+	//int e;
+	//for (e = 0; e<=(ny); e++)
+	//	MSet[e] = malloc(sizeof(int)*nx);
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
-	int maxiter= 2000;			//max number of iterations
 	double threshold = 1.0;
 	double dist = 0.0;
 	int ix, iy;
@@ -23,10 +26,10 @@ void main()
 	double temp=0.0;
 	double xder=0.0;
 	double yder=0.0;
-	double xorbit[maxiter];
-	xorbit[0] = 0;
-	double yorbit[maxiter];
-	yorbit[0] = 0;
+	double xorbit[maxiter+1];
+	xorbit[0] = 0.0;
+	double yorbit[maxiter+1];
+	yorbit[0] = 0.0;
 	double huge = 100000;
 	bool flag = false;
 	const double overflow = DBL_MAX;
@@ -84,9 +87,9 @@ void main()
 			}
 			
 			if (dist < delta)
-				MSet[ix][iy] = 1;
+				MSet[iy][ix] = 1;
 			else
-				MSet[ix][iy] = 0;
+				MSet[iy][ix] = 0;
 		
 			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
