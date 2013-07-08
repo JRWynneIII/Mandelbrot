@@ -45,7 +45,7 @@ void main(int argc, int *argv[])
 		max_16_last = max_16;
 	}
 	int ompmax = 0;
-	#pragma omp parallel  shared(MSet) firstprivate(size,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
+	#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
 	{
 		if (omp_get_thread_num() == 15)
 		{
@@ -59,7 +59,7 @@ void main(int argc, int *argv[])
 		}
 	
 		for (iy=size; iy<=ompmax; iy++)
-		
+		{	
 			cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 			for (ix = 0; ix<=(nx-1); ix++)
 			{
