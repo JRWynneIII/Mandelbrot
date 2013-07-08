@@ -2,5 +2,6 @@
 *.[oa]
 *.out
 *.swp
-*.tif
+*.tif*
 *.txt
+*.swo
