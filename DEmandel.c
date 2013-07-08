@@ -6,10 +6,11 @@
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
+#include <mpi.h>
 
 void main(int argc, int *argv[])
 {
-	int nx=2000, ny=2000;			//Image resolution: x,y
+	int nx=10000, ny=10000;			//Image resolution: x,y
 	int maxiter= 2000;			//max number of iterations
 	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
@@ -31,6 +32,10 @@ void main(int argc, int *argv[])
 	bool flag = false;
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
+	//START MPI CODE
+	MPI_Init(&argc, &argv);
+	int totalnodes = 0;
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	int size =0;
 	int max_16 = ny/16;
 	int max_16_last = 0;
@@ -118,5 +123,6 @@ void main(int argc, int *argv[])
 			}
 		}
 	}
+	MPI_Finalize();
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }
