@@ -12,7 +12,7 @@ void main(int argc, char *argv[])
 {
 	int nx=10000, ny=10000;			//Image resolution: x,y
 	int maxiter= 2000;			//max number of iterations
-	int *MSet = malloc(sizeof(int)*nx*ny);
+	int (*MSet)[nx] = malloc(sizeof(*MSet)[ny]);
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	double threshold = 1.0;
@@ -153,7 +153,8 @@ void main(int argc, char *argv[])
 				}
 			}
 		}
-		MPI_BARRIER(MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+		printf("Barrier\n");
 		if (myrank != totalnodes-1)
 		{
 			MPI_Send(&MPIMSet[0][0], ompmax*(nx-1), MPI_INT, 0, 0, MPI_COMM_WORLD);
@@ -164,22 +165,26 @@ void main(int argc, char *argv[])
 		}
 	}
 		
-	if (myrank == 0)
+	else if(myrank == 0)
 	{
+		MPI_Barrier(MPI_COMM_WORLD);
+		int tempb=0, tempa=0;
+		int a,b;
+		MPI_Status status;
 		for (i = 1; i<totalnodes && i != (totalnodes -1); i++);
 		{
-			int temp[MPI_max_16][
-			MPI_Recv(temp, MPI_max_16, MPI_INT, i, 0, MPI_COMM_WORLD);
-			for (a = 0; a<MPI_max_16; a++)
+			int temp[ompmax][(nx-1)];
+			MPI_Recv(&temp[0][0], MPI_max_16, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
+			for (a = 0; a<ompmax; a++)
 			{
-				for (b=0; a<MPI_max_16_last; b++)
+				for (b=0; a<(nx-1); b++)
 				{
-					MSet[a+tempa][b+tempb] = temp[a][b]
+					MSet[(a+tempa)][(b+tempb)] = temp[a][b];
 				}
 			}    
 		
-			int tempb += b;
-			int tempa += a;
+			tempb += b;
+			tempa += a;
 		}
 		calc_pixel_value(nx,ny,MSet,maxiter);
 	}
