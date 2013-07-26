@@ -7,12 +7,14 @@
 #include <stdbool.h>
 #include <float.h>
 #include "mpi.h"
-
+#define nx 1000
+#define ny 1000
+int MPIMSet[ny][nx];
+int MSet[nx][ny];
 void main(int argc, char *argv[])
 {
-	int nx=10000, ny=10000;			//Image resolution: x,y
 	int maxiter= 2000;			//max number of iterations
-	int (*MSet)[nx] = malloc(sizeof(*MSet)[ny]);
+	//int (*MSet)[nx] = malloc(sizeof(*MSet)[ny]);
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	double threshold = 1.0;
@@ -35,7 +37,6 @@ void main(int argc, char *argv[])
 	
 	//START MPI CODE
 	MPI_Init(&argc, &argv);
-	int MPIMSet[ny][nx];
 	int totalnodes = 0;
 	int myrank;
 	MPI_Comm_size(MPI_COMM_WORLD, &totalnodes);
@@ -64,7 +65,7 @@ void main(int argc, char *argv[])
 	{
 		int y = 0;
 		y = (max_16*15);
-		max_16_last = (MPI_max_16 - y);	//
+		max_16_last = (MPI_max_16 - y);	
 	}
 	else
 	{
@@ -74,7 +75,7 @@ void main(int argc, char *argv[])
 	if (myrank != 0)
 	{
 		//Start OpenMP code
-		#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
+		#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag, MPIMSet) num_threads(16)
 		{
 			if (omp_get_thread_num() == 15)
 			{
@@ -141,52 +142,23 @@ void main(int argc, char *argv[])
 						MPIMSet[iy][ix] = 1;
 					else
 						MPIMSet[iy][ix] = 0;
-		//			for (i = 1; i<totalnodes; i++)
-		//			{
-		//				MPI_BARRIER(MPI_COMM_WORLD);
-		//				if (i == myrank)
-		//				{
-							//Send data to master
-		//				}
-		//			}
-					//printf("MSET:%d\n",MSet[ix][iy]);
 				}
 			}
 		}
 		MPI_Barrier(MPI_COMM_WORLD);
 		printf("Barrier\n");
-		if (myrank != totalnodes-1)
-		{
-			MPI_Send(&MPIMSet[0][0], ompmax*(nx-1), MPI_INT, 0, 0, MPI_COMM_WORLD);
-		}
-		else
-		{
-			MPI_Send(&MPIMSet[0][0], ompmax*(nx-1), MPI_INT, 0, 1, MPI_COMM_WORLD);
-		}
+		MPI_Gather(&MPIMSet[0][0], (ompmax*(nx-1)), MPI_INT, &MSet[0][0], totalnodes*(ompmax*(nx-1)), MPI_INT, 0, MPI_COMM_WORLD);
+		printf("Passed Gather\n");
+		MPI_Barrier(MPI_COMM_WORLD);
 	}
 		
 	else if(myrank == 0)
 	{
 		MPI_Barrier(MPI_COMM_WORLD);
-		int tempb=0, tempa=0;
-		int a,b;
-		MPI_Status status;
-		for (i = 1; i<totalnodes && i != (totalnodes -1); i++);
-		{
-			int temp[ompmax][(nx-1)];
-			MPI_Recv(&temp[0][0], MPI_max_16, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-			for (a = 0; a<ompmax; a++)
-			{
-				for (b=0; a<(nx-1); b++)
-				{
-					MSet[(a+tempa)][(b+tempb)] = temp[a][b];
-				}
-			}    
-		
-			tempb += b;
-			tempa += a;
-		}
+		printf("Barrier 0\n");
+		MPI_Barrier(MPI_COMM_WORLD);
 		calc_pixel_value(nx,ny,MSet,maxiter);
+		printf("Wrote tiff\n");
 	}
 	
 	MPI_Finalize();

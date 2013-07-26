@@ -32,36 +32,13 @@ void main(int argc, int *argv[])
 	bool flag = false;
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
-	
-	//START MPI CODE
-	MPI_Init(&argc, &argv);
-	int totalnodes = 0;
-	MPI_Comm_size(MPI_COMM_WORLD, &totalnodes);
-	
 	int size =0;
-	
-	int MPI_max_16 = ny/totalnodes;
-	int MPI_max_16_last = 0;
-	
-	if ((ny%totalnodes) != 0)
-	{
-		int x = 0;
-		x = (MPI_max_16*(totalnodes-1));
-		MPI_max_16_last = (ny - y)
-	}
-	else
-	{
-		MPI_max_16_last = MPI_max_16;
-	}
-
-	int max_16 = MPI_max_16/16;
-	int max_16_last = 0;
 	//break into 16 parts 1/core
-	if ((MPI_max_16%16) != 0)
+	if ((ny%16) != 0)
 	{
 		int y = 0;
 		y = (max_16*15);
-		max_16_last = (MPI_max_16 - y);	//
+		max_16_last = (ny - y);	//
 	}
 	else
 	{
@@ -93,7 +70,7 @@ void main(int argc, int *argv[])
 				y = 0.0;
 				x2 = 0.0;
 				y2 = 0.0;
-					temp = 0.0;
+				temp = 0.0;
 				xder = 0.0;
 				yder = 0.0;
 				dist = 0.0;
@@ -142,6 +119,5 @@ void main(int argc, int *argv[])
 			}
 		}
 	}
-	MPI_Finalize();
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }
