@@ -6,22 +6,22 @@
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
-#include "mpi.h"
 
-void calc_pixel_value(int calcnx, int calcny, int calcMSet[calcnx][calcny], int calcmaxiter);
 
-void main(int argc, char *argv[])
+//int MSet[nx][ny];
+
+void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx][calcny], int calcmaxiter);
+
+void main(int argc, int *argv[])
 {
 	int nx = 1000, ny = 1000;
 	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
-	int xmin=-2;
-        int xmax= 4; 		//low and high x-value of image window
-	int ymin=-2;
-        int ymax= 2;			//low and high y-value of image window
 	int maxiter= 2000;			//max number of iterations
+	int xmin=-3, xmax= 1; 		//low and high x-value of image window
+	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	double threshold = 1.0;
 	double dist = 0.0;
-	int ix, iy = 0;
+	int ix, iy;
 	double cx, cy;
 	int iter, i = 0;
 	double x,y,x2,y2 = 0.0;
@@ -29,75 +29,45 @@ void main(int argc, char *argv[])
 	double xder=0.0;
 	double yder=0.0;
 	double xorbit[maxiter+1];
-	xorbit[0] = 0;
+	xorbit[0] = 0.0;
 	double yorbit[maxiter+1];
-	yorbit[0] = 0;
+	yorbit[0] = 0.0;
 	double huge = 100000;
 	bool flag = false;
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
-	MPI_Request request;
-	MPI_Status status;
-
-	//Start MPI code
-	int totalnodes;
-	int rank;
-	int size = 0;
-	int ompmax = 0;
-	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &totalnodes);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	int mpi_16 = ny/totalnodes;
-	int mpi_16_last = 0;
-	if ((ny%(totalnodes-2)) != 0)
+	int size =0;
+	int max_16 = (ny/16);
+	int max_16_last = 0;
+	//break into 16 parts 1/core
+	if ((ny%16) != 0)
 	{
 		int y = 0;
-		y = (mpi_16*(totalnodes-2));
-		mpi_16_last = (ny - y);
+		y = (max_16*15);
+		max_16_last = (ny - y);	//
 	}
 	else
 	{
-		mpi_16_last = mpi_16;
+		max_16_last = max_16;
 	}
-	
-
-	if (rank == totalnodes-1)
+	int ompmax = 0;
+	//Start OpenMP code
+	#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
 	{
-		ompmax = (ny-1);
-		size = (rank*mpi_16_last);
-	}
-	else
-	{	
-		ompmax = ((rank+1)*mpi_16 -1);
-		size = rank*mpi_16;
-	}
-	
-	int recvcnts[totalnodes];
-	
-	int tempMSet[nx][ny];
-
-	if (rank == 0)
-	{
-		for (i = 1; i<totalnodes; i++)
+		if (omp_get_thread_num() == 15)
 		{
-			printf("Approaching Recv %d\n", i);
-			MPI_Recv(&MSet, (nx*ny), MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-			printf("Recieved msg\n");
+			ompmax = (ny-1);
+			size = (omp_get_thread_num()*max_16_last);
 		}
-	}
-
-	else if (rank != 0)
-	{
-		for (i = 0; i<=totalnodes-1;i++)
+		else
 		{
-			if (i==rank)
-				recvcnts[rank] = ompmax*(nx-1);
-			else
-					printf("");
+			ompmax = (omp_get_thread_num()+1)*max_16 - 1;
+			size = omp_get_thread_num()*max_16;
 		}
 	
 		for (iy=size; iy<=ompmax; iy++)
-		{
+		{	
+			cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 			for (ix = 0; ix<=(nx-1); ix++)
 			{
 				iter = 0;
@@ -110,14 +80,10 @@ void main(int argc, char *argv[])
 				xder = 0.0;
 				yder = 0.0;
 				dist = 0.0;
-				cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 				cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
-				double tempcx = cx;
-				//Make the points plot on the inverse complex plane
-				//cx = cx/(cy*cy+cx*cx);
-				//cy = -1*cy/(tempcx*tempcx+cy*cy);
+	
 				for (iter =0; iter<=maxiter; iter++)
-					{
+				{
 					//Begin normal mandel level set process
 					temp = x2-y2 +cx;
 					y = 2.0*x*y+cy;
@@ -130,14 +96,14 @@ void main(int argc, char *argv[])
 				}
 				//if the point escapes, find the distance from the set
 				if (x2+y2>=huge)
-					{
+				{
 					xder, yder = 0;
 					i = 0;
 					flag = false;
 	
 					for (i=0;i<=iter && flag==false;i++)
 					{
-						temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
+							temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
 						yder = 2.0*(yorbit[i]*xder+xorbit[i]*yder);
 						xder = temp;
 						flag = fmax(fabs(xder), fabs(yder)) > overflow;
@@ -151,24 +117,13 @@ void main(int argc, char *argv[])
 				}
 				
 				if (dist < delta)
-					tempMSet[ix][iy] = 1;
+					MSet[iy][ix] = 1;
 				else
-					tempMSet[ix][iy] = 0;
-					
+					MSet[iy][ix] = 0;
+		
 				//printf("MSET:%d\n",MSet[ix][iy]);
 			}
 		}
 	}
-	if (rank == 0)
-	{
-	}
-	if (rank != 0)
-	{
-		MPI_Ssend(&tempMSet, (nx*ny), MPI_INT, 0, 0, MPI_COMM_WORLD);
-		//MPI_Wait(&request, &status);
-		printf("Sent\n");
-	}
-	MPI_Finalize();
-	printf("Printing tif");
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }

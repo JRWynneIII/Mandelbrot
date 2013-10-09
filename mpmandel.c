@@ -6,16 +6,13 @@
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
+#define nx 1000
+#define ny 1000
 
+int MSet[nx][ny];
 
-//int MSet[nx][ny];
-
-void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx][calcny], int calcmaxiter);
-
-int main(int argc, int *argv[])
+void main(int argc, int *argv[])
 {
-	int nx = 10000, ny = 10000;
-	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
 	int maxiter= 2000;			//max number of iterations
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
@@ -37,27 +34,25 @@ int main(int argc, int *argv[])
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 	int size =0;
-	int max_16 = (ny/16);
+	int max_16 = ny/16;
 	int max_16_last = 0;
-	//break into 16 parts 1/core
 	if ((ny%16) != 0)
 	{
 		int y = 0;
 		y = (max_16*15);
-		max_16_last = (ny - y);	//
+		max_16_last = (ny - y);
 	}
 	else
 	{
 		max_16_last = max_16;
 	}
 	int ompmax = 0;
-	//Start OpenMP code
 	#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
 	{
 		if (omp_get_thread_num() == 15)
 		{
 			ompmax = (ny-1);
-			size = (omp_get_thread_num()*max_16_last);
+			size = (omp_get_thread_num()*max_16);
 		}
 		else
 		{
@@ -76,7 +71,7 @@ int main(int argc, int *argv[])
 				y = 0.0;
 				x2 = 0.0;
 				y2 = 0.0;
-				temp = 0.0;
+					temp = 0.0;
 				xder = 0.0;
 				yder = 0.0;
 				dist = 0.0;
