@@ -1,4 +1,4 @@
-nclude <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
@@ -7,11 +7,14 @@ nclude <stdio.h>
 #include <stdbool.h>
 #include <float.h>
 
+#define nx 5000
+#define ny 5000
+int MSet[nx][ny];
+
 void main(int argc, int *argv[])
 {
-	int nx=2000, ny=2000;			//Image resolution: x,y
 	int maxiter= 2000;			//max number of iterations
-	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
+//	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
 	//int e;
 	//for (e = 0; e<=(ny); e++)
 	//	MSet[e] = malloc(sizeof(int)*nx);

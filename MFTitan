@@ -1,5 +1,5 @@
 all:
-	cc -openmp DEmandel.c tiff.c -ltiff -I=/ccs/home/wyn/lib/libtiff2/include -L=/ccs/home/wyn/lib/libtiff2/lib -o a.out
+	cc -g -fopenmp mandelfinal.c tiff.c -ltiff -I=/ccs/home/wyn/lib/libtiff/include -L=/ccs/home/wyn/lib/libtiff/lib -o a.out
 	cp a.out /tmp/work/wyn
 clean: all
 	rm *.o

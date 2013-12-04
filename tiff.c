@@ -12,7 +12,7 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx][ny], int maxiter
 	int i = 0;
 	int elecount = 0;
 	int a = 0;
-	char outputname[10] = "output.tif";
+	char outputname[11] = "output.tif";
 	for (i = 0; i<ny; i++)
 	{
 		for (a = 0; a<nx; a++)
@@ -46,7 +46,7 @@ void write_tiff_bilevel(char * outputFilename, int m_width, int m_height, unsign
 	TIFFSetField(outputname, TIFFTAG_BITSPERSAMPLE, 8);
 	TIFFSetField(outputname, TIFFTAG_SAMPLESPERPIXEL, 1);
 	TIFFSetField(outputname, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-	TIFFSetField(outputname, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
+	TIFFSetField(outputname, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 	TIFFSetField(outputname, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
 	//TIFFSetField(outputname, TIFFTAG_XRESOLUTION, 500.0);
 	//TIFFSetField(outputname, TIFFTAG_YRESOLUTION, 500.0);

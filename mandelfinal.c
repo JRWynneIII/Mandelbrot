@@ -6,16 +6,26 @@
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
+#include <mpi.h>
 
 #define nx 2000
 #define ny 2000
 
 int MSet[nx][ny];
+int MPIMSet[nx][ny];
 
 void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx][calcny], int calcmaxiter);
 
-int main(int argc, int *argv[])
+int main(int argc, char *argv[])
 {
+	printf("Calculating Mandelbrot...\n");
+	double start, end;
+	MPI_Init(&argc, &argv);
+	start = MPI_Wtime();
+	int numMpiSections; 
+	int myRank;
+	MPI_Comm_size(MPI_COMM_WORLD,&numMpiSections);
+	MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 	int maxiter= 2000;			//max number of iterations
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
@@ -36,36 +46,56 @@ int main(int argc, int *argv[])
 	bool flag = false;
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
-	int size =0;
-	int max_16 = (ny/16);
-	int max_16_last = 0;
-	//break into 16 parts 1/core
-	if ((ny%16) != 0)
+
+	//Split by MPI rank
+	int yLowBound = 0;
+	int yHighBound = 0;
+	int mpiSize = ny/(numMpiSections-1);
+	
+	if (myRank <= numMpiSections - 1)
+	{
+		yLowBound = (myRank-1)*mpiSize;
+		yHighBound = yLowBound + mpiSize;
+
+	}
+	else if (myRank == numMpiSections)	//give last rank the rest | master should have none
+	{
+		yLowBound = (ny-mpiSize);	
+		yHighBound = (ny-1);
+	}
+	
+	//Split into 16 OMP pieces
+	int ompSize = 0;
+	int ompYHighBound = 0;
+	int ompYLowBound = 0;
+	ompYLowBound = yHighBound/16;
+	if ((yHighBound%16) != 0)
 	{
 		int y = 0;
-		y = (max_16*15);
-		max_16_last = (ny - y);	//
+		y = (ompYLowBound*15);
+		ompYHighBound = yHighBound - y;
 	}
 	else
 	{
-		max_16_last = max_16;
+		ompYHighBound = (yHighBound/16);
 	}
+
 	int ompmax = 0;
 	//Start OpenMP code
-	#pragma omp parallel shared(MSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
+	#pragma omp parallel shared(MSet) firstprivate(ompSize,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
 	{
 		if (omp_get_thread_num() == 15)
 		{
-			ompmax = (ny-1);
-			size = (omp_get_thread_num()*max_16_last);
+			ompmax = (ompYHighBound-1);
+			ompSize = (omp_get_thread_num()*ompYHighBound);
 		}
 		else
 		{
-			ompmax = (omp_get_thread_num()+1)*max_16 - 1;
-			size = omp_get_thread_num()*max_16;
+			ompmax = (omp_get_thread_num()+1)*ompYLowBound - 1;
+			ompSize = omp_get_thread_num()*ompYLowBound;
 		}
 	
-		for (iy=size; iy<=ompmax; iy++)
+		for (iy=ompSize; iy<=ompmax; iy++)
 		{	
 			cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
 			for (ix = 0; ix<=(nx-1); ix++)
@@ -103,7 +133,7 @@ int main(int argc, int *argv[])
 	
 					for (i=0;i<=iter && flag==false;i++)
 					{
-							temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
+						temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
 						yder = 2.0*(yorbit[i]*xder+xorbit[i]*yder);
 						xder = temp;
 						flag = fmax(fabs(xder), fabs(yder)) > overflow;
@@ -125,5 +155,15 @@ int main(int argc, int *argv[])
 			}
 		}
 	}
-	calc_pixel_value(nx,ny,MSet,maxiter);
+	MPI_Gather(&MPIMSet[0][0], ((yHighBound-yLowBound)*(nx-1)), MPI_INT, &MSet[0][0], numMpiSections*((yHighBound-yLowBound)*(nx-1)), MPI_INT, 0, MPI_COMM_WORLD);
+	printf("Passed Gather\n");
+	if (myRank == 0)
+	{
+		calc_pixel_value(nx,ny,MSet,maxiter);
+		end = MPI_Wtime();
+		MPI_Finalize();
+		int t = end-start;
+		printf("Time elapsed: %d", t);
+	}
+	
 }
