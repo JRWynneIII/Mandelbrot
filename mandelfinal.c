@@ -46,14 +46,26 @@ int main(int argc, char *argv[])
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 	int yLowBound = 0;
 	int yHighBound = 0;
-	int *MSet = (int*)malloc(nx*ny*sizeof(int));
+	int *localMSet;
+       	int *MSet = (int*)malloc(nx*ny*sizeof(int));
+	int *recievecounts = malloc(sizeof(int)*numMpiSections);
+	int *displs = malloc(sizeof(int)*numMpiSections);
+	for (i = 0; i < numMpiSections - 1; i++)
+	{
+		if (myRank = numMpiSections - 1)
+			recievecounts[i] = (ny-(ny/(numMpiSections-1)));
+		else
+			recievecounts[i] = ny/numMpiSections;
+		displs[i] = 0;
+
+	}
 	if (myRank > 0)
 	{
 
 		//Split by MPI rank
 		int mpiSize = ny/(numMpiSections-1);
 		
-		if (myRank <= numMpiSections - 1 && myRank != 0)
+		if (myRank <= numMpiSections - 2 && myRank != 0)
 		{
 			yLowBound = (myRank-1)*mpiSize;
 			yHighBound = yLowBound + mpiSize;
@@ -63,25 +75,9 @@ int main(int argc, char *argv[])
 		else if (myRank == numMpiSections-1)	//give last rank the rest | master should have none
 		{
 			yLowBound = (ny-mpiSize);	
-			yHighBound = (ny-1);
+			yHighBound = (ny);
 		}
-	}
-	int *sendcounts = malloc(sizeof(int)*numMpiSections);
-	int *displs = malloc(sizeof(int)*numMpiSections);
-	for  (i = 0; i < numMpiSections - 1; i++)
-	{
-		sendcounts[i] = (yHighBound-yLowBound);
-		displs[i] = 0;
-	}
-	
-	int *localMSet = (int*)malloc((yHighBound-yLowBound)*nx*sizeof(int));
-	MPI_Barrier(MPI_COMM_WORLD);
-	printf("Passed Barrier 1\n");
-	MPI_Scatterv(&(MSet), sendcounts, displs, MPI_INT, &(localMSet), sendcounts[myRank], MPI_INT, 0, MPI_COMM_WORLD);
-	printf("Passed Scatter\n");
-		
-	if (myRank > 0)
-	{
+		localMSet = (int*)malloc(nx*ny*sizeof(int));
 		//Split into 16 OMP pieces
 		int ompSize = 0;
 		int ompYHighBound = 0;
@@ -175,7 +171,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_Gather(&localMSet, (yHighBound-yLowBound), MPI_INT, MSet, (nx*ny), MPI_INT,0, MPI_COMM_WORLD);
+	MPI_Gatherv(&localMSet, (yHighBound-yLowBound), MPI_INT, MSet, recievecounts, displs, MPI_INT,0, MPI_COMM_WORLD);
 	printf("Passed Gather\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (myRank == 0)
