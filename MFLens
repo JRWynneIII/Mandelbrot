@@ -1,5 +1,5 @@
 all:
 	mpicc -ltiff -g mandelmpi.c tiff.c -o a.out
-	cp a.out /tmp/work/wyn
+	cp a.out $(MEMBERWORK)
 clean: all
 	rm *.o
