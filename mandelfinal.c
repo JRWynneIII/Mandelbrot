@@ -7,15 +7,25 @@
 #include <stdbool.h>
 #include <float.h>
 #include <mpi.h>
+#include <string.h>
 
 #define nx 1000
 #define ny 1000
+#define maxiter 2000
 
+double* xorbit;
+double* yorbit;
+int* MSet;
+int* recievecounts;
+int* displs;
 
 void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int calcmaxiter);
 
 int main(int argc, char *argv[])
 {
+	MSet = (int*)malloc(nx*ny*sizeof(int));
+	xorbit = (double*)malloc((maxiter+1)*sizeof(double));
+	yorbit = (double*)malloc((maxiter+1)*sizeof(double));
 	printf("Calculating Mandelbrot...\n");
 	double start, end;
 	MPI_Init(&argc, &argv);
@@ -24,7 +34,6 @@ int main(int argc, char *argv[])
 	int myRank;
 	MPI_Comm_size(MPI_COMM_WORLD,&numMpiSections);
 	MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-	int maxiter= 2000;			//max number of iterations
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	double threshold = 1.0;
@@ -36,9 +45,7 @@ int main(int argc, char *argv[])
 	double temp=0.0;
 	double xder=0.0;
 	double yder=0.0;
-	double xorbit[maxiter+1];
 	xorbit[0] = 0.0;
-	double yorbit[maxiter+1];
 	yorbit[0] = 0.0;
 	double huge = 100000;
 	bool flag = false;
@@ -47,17 +54,22 @@ int main(int argc, char *argv[])
 	int yLowBound = 0;
 	int yHighBound = 0;
 	int *localMSet;
-       	int *MSet = (int*)malloc(nx*ny*sizeof(int));
-	int *recievecounts = malloc(sizeof(int)*numMpiSections);
-	int *displs = malloc(sizeof(int)*numMpiSections);
-	for (i = 0; i < numMpiSections - 1; i++)
+	recievecounts = malloc(sizeof(int)*numMpiSections);
+	displs = malloc(sizeof(int)*numMpiSections);
+	if (myRank == 0)
 	{
-		if (myRank = numMpiSections - 1)
-			recievecounts[i] = (ny-(ny/(numMpiSections-1)));
-		else
-			recievecounts[i] = ny/numMpiSections;
-		displs[i] = 0;
-
+		int sum = 0;
+		for (i = 0; i < numMpiSections - 1; i++)
+		{
+			displs[i] = sum;//(i*recievecounts[i]+1);
+			if (myRank == numMpiSections - 1 && myRank !=0)
+				recievecounts[i] = (nx*ny)/(numMpiSections-1);// (ny-(ny/(numMpiSections-1)));
+			else if (myRank == 0)
+				recievecounts[i] = 0;
+			else
+				recievecounts[i] = (nx*ny)/(numMpiSections-1);// (ny-(ny/(numMpiSections-1)));
+			sum += recievecounts[i];
+		}
 	}
 	if (myRank > 0)
 	{
@@ -65,7 +77,7 @@ int main(int argc, char *argv[])
 		//Split by MPI rank
 		int mpiSize = ny/(numMpiSections-1);
 		
-		if (myRank <= numMpiSections - 2 && myRank != 0)
+		if (myRank <= numMpiSections - 2)
 		{
 			yLowBound = (myRank-1)*mpiSize;
 			yHighBound = yLowBound + mpiSize;
@@ -77,7 +89,7 @@ int main(int argc, char *argv[])
 			yLowBound = (ny-mpiSize);	
 			yHighBound = (ny);
 		}
-		localMSet = (int*)malloc(nx*ny*sizeof(int));
+		localMSet = (int*)malloc(((nx*ny)/numMpiSections)*sizeof(int));
 		//Split into 16 OMP pieces
 		int ompSize = 0;
 		int ompYHighBound = 0;
@@ -96,7 +108,7 @@ int main(int argc, char *argv[])
 	
 		int ompmax = 0;
 		//Start OpenMP code
-		#pragma omp parallel shared(MSet) firstprivate(ompSize,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
+		#pragma omp parallel shared(localMSet) firstprivate(ompSize,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
 		{
 			if (omp_get_thread_num() == 15)
 			{
@@ -161,18 +173,24 @@ int main(int argc, char *argv[])
 					}
 					
 					if (dist < delta)
-						localMSet[ix*iy] = 1;
+						localMSet[ix+iy] = 1;
 					else
-						localMSet[ix*iy] = 0;
+						localMSet[ix+iy] = 0;
 			
 					//printf("MSET:%d\n",MSet[ix][iy]);
 				}
 			}
 		}
+		for (i = 0; i<(nx*ny)/numMpiSections; i++)
+		{
+			if (localMSet[i] != 0)
+				printf("localMSet[%d]: %d\n", i, localMSet[i]);
+		}
+		free(xorbit);
+		free(yorbit);
+		MPI_Gatherv(localMSet, recievecounts[myRank], MPI_INT, MSet, recievecounts, recievecounts, MPI_INT,0, MPI_COMM_WORLD);
+		printf("Passed Gather\n");
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_Gatherv(&localMSet, (yHighBound-yLowBound), MPI_INT, MSet, recievecounts, displs, MPI_INT,0, MPI_COMM_WORLD);
-	printf("Passed Gather\n");
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (myRank == 0)
 	{
@@ -182,5 +200,4 @@ int main(int argc, char *argv[])
 		printf("Time elapsed: %d", t);
 	}
 	MPI_Finalize();
-	
 }
