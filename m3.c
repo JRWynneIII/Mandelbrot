@@ -1,74 +1,56 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include <omp.h>
 #include <setjmp.h>
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
-#include "mpi.h"
+#include <mpi.h>
+#include <string.h>
 
 #define nx 2000
 #define ny 2000
-#define THREAD_NUM_PER_NODE 8
 
-int MSet[nx*ny];
 int maxiter= 2000;			//max number of iterations
 int myRank;
+int commSize;
 
 void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int calcmaxiter);
-void calcSet(int max_16, int max_16_last, int chunkSize, int *localMSet);
+void calcSet(int chunkSize, int* localMSet);
 
 int main(int argc, char *argv[])
 {
+	int *MSet = (int*)malloc(nx*ny*sizeof(int));
+	memset(MSet, 0, nx*ny*sizeof(int));
 	MPI_Init(&argc, &argv);
-	int *localMSet = NULL;
-	int commSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-	//Check if resolution is evenly divisible by num of nodes so all chunks are same size
-	if ((nx*ny)%(commSize) != 0)
-	{
-		printf("Incompatible number of nodes\n");
-		exit(0);
-	}
-	
-	//Calculate size of chunks
-	int chunkSize = 0;
-	chunkSize = (nx*ny)/(commSize);
-	localMSet = (int*)malloc((chunkSize-1) * (nx-1) * sizeof(int));
-	memset(localMSet,0,chunkSize*sizeof(int));
-	memset(MSet,0,nx*ny*sizeof(int));
-	//Scatter chunk of array to each node
+	int recvcnts[commSize];
+	int i;
 
-	int max_16 = (chunkSize/THREAD_NUM_PER_NODE);
-	int max_16_last = 0;
-	//break into 16 parts 1/core
-	if ((chunkSize%THREAD_NUM_PER_NODE) != 0)
+	int *localMSet = (int*)malloc((nx*ny)/(commSize-1)*sizeof(int));
+	int chunkSize = 0;
+	if (myRank != 0)
 	{
-		int y = 0;
-		y = (max_16*(THREAD_NUM_PER_NODE-1));
-		max_16_last = (chunkSize - y);	
+		calcSet(chunkSize, localMSet);
 	}
-	else
-	{
-		max_16_last = max_16;
-	}
-	
-	//Start OpenMP code
-	calcSet(max_16, max_16_last, chunkSize, localMSet);
-	
 	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_Gather(localMSet, chunkSize, MPI_INT, MSet, chunkSize, MPI_INT, 0, MPI_COMM_WORLD);
-	if (myRank ==0)
+       	MPI_Status status;
+	if (myRank == 0)
 	{
+		for (i = 1; i<=(commSize-1); i++)
+		{
+			MPI_Recv(MSet,(nx*ny), MPI_INT, i, i, MPI_COMM_WORLD, &status);
+			printf("Recieved from node %d\n", i);
+		}
+		//MPI_Gatherv(localMSet, (nx*ny)/(commSize-1), MPI_INT, MSet, recvcnts, 0, MPI_INT, 0, MPI_COMM_WORLD);
 		calc_pixel_value(nx,ny,MSet,maxiter);
 	}
+	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
 }
-
-void calcSet(int max_16, int max_16_last, int chunkSize, int* localMSet)
+void calcSet(int chunkSize, int* localMSet)
 {
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
@@ -88,15 +70,28 @@ void calcSet(int max_16, int max_16_last, int chunkSize, int* localMSet)
 	double huge = 100000;
 	bool flag = false;
 	const double overflow = DBL_MAX;
-	int ompmax = 0;
-	int size = 0;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
-
-	#pragma omp parallel shared(localMSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(THREAD_NUM_PER_NODE)
+	int size =0;
+	int max_16 = (ny/16);
+	int max_16_last = 0;
+	//break into 16 parts 1/core
+	if ((ny%16) != 0)
 	{
-		if (omp_get_thread_num() == THREAD_NUM_PER_NODE-1)
+		int y = 0;
+		y = (max_16*15);
+		max_16_last = (ny - y);	//
+	}
+	else
+	{
+		max_16_last = max_16;
+	}
+	int ompmax = 0;
+	//Start OpenMP code
+	#pragma omp parallel shared(localMSet) firstprivate(size,iter,ompmax,cx,cy,ix,iy,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(16)
+	{
+		if (omp_get_thread_num() == 15)
 		{
-			ompmax = (chunkSize-1);
+			ompmax = (ny-1);
 			size = (omp_get_thread_num()*max_16_last);
 		}
 		else
@@ -156,18 +151,15 @@ void calcSet(int max_16, int max_16_last, int chunkSize, int* localMSet)
 	
 				}
 				
-				if (nx*ix +iy > 799999)
-					//printf("Rank: %d\tiy: %d\tix: %d\n", myRank, iy, ix);
 				if (dist < delta)
-					localMSet[(nx-1) * ix + iy] = 1;
+					localMSet[ix * (nx-1) + iy] = 1;
 				else
-					localMSet[(nx-1) * ix + iy] = 0;
-				if (localMSet[((nx-1)*ix)+iy] == 1)
-				{
-					//printf("Rank: %d\tlocalMSet[%d]\tValue: %d\n", myRank, (((nx-1)*ix)+iy), localMSet[((nx-1)*ix) + iy]);
-				}
+					localMSet[ix * (nx-1) + iy] = 0;
+		
 				//printf("MSET:%d\n",MSet[ix][iy]);
 			}
 		}
 	}
+	MPI_Request * request;
+	MPI_Isend(localMSet, (nx*ny)/(commSize-1), MPI_INT, 0, myRank, MPI_COMM_WORLD, request);
 }

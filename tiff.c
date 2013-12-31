@@ -23,8 +23,6 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx*ny], int maxiter)
 			else 
 				m_image_data[elecount] = 255;
 			elecount++;	
-			if (pointiter != 0)
-				printf("%d\n", pointiter);
 		}
 	}
 //	for(i =0;i<=(nx*ny); i++){
