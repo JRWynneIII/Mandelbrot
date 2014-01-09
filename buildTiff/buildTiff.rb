@@ -2,8 +2,21 @@
 
 require 'fileutils'
 include FileUtils
+$prefix = "$HOME/lib/libtiff"
 
 def main
+	opt1 = ARGV[0]
+	arg1 = ARGV[1]
+
+	if opt1 == "--prefix"
+		$prefix = arg1
+	else
+		if opt1 != nil 
+			print blue('=>')
+			puts " Invalid Argument. Exiting"
+			exit
+		end
+	end
 	if File.exist?("tiff-4.0.3.tar.gz") == true
 		print blue('=>')
 		print " Libtiff already exists in this folder. Redownload? (Y/n): "
@@ -76,7 +89,7 @@ end
 def install
 	print blue("=>")
 	print " Configuring libTiff\n"
-	system "./configure --prefix=$HOME/lib/libtiff --disable-jpeg --disable-zlib > ~/lib/configlog.txt"
+	system "./configure --prefix=#{$prefix} --disable-jpeg --disable-zlib > ~/lib/configlog.txt"
 	print blue("=>")
 	print " Running make\n"
 	system "make &> ~/lib/makeLog.txt"
@@ -90,8 +103,7 @@ def clean
 	print blue("=>")
 	print " Cleaning up...\n"
 	cd("..")
-	system "rm -r tiff-4.0.3*" 
-	system "rm *og.txt"
+	system "rm -rf libtiff tiff-4.0.3*" 
 end
 
 def colorize(text, color_code)

@@ -1,5 +1,5 @@
 all:
-	cc -g -fopenmp m3.c tiff.c -ltiff -I=/ccs/home/wyn/lib/libtiff/include -L=/ccs/home/wyn/lib/libtiff/lib -o a.out
+	cc -g m4.c tiff.c -ltiff -I=/ccs/home/wyn/lib/libtiff/include -L=/ccs/home/wyn/lib/libtiff/lib -o a.out
 	cp a.out $(MEMBERWORK)/stf007
 clean: all
 	rm *.o
