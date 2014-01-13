@@ -39,11 +39,11 @@ int main(int argc, char *argv[])
 	if (myRank == 0)
 	{
 		int myStart = 0, myEnd = 0;
-		int* tempMSet = (int*)malloc((chunkSize+1)*nx*sizeof(int));
+		int* tempMSet = (int*)malloc((chunkSize)*sizeof(int));
 		for (i = 1; i<commSize; i++)
 		{
 			myStart = (chunkSize/ny)*(i-1);
-			myEnd = ((chunkSize/ny)*i)-1;
+			myEnd = (myStart + (chunkSize/ny))-1;
 		
 			//send to each node
 			//tag 0 = startIdx
@@ -53,23 +53,16 @@ int main(int argc, char *argv[])
 			MPI_Send(&myStart, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
 			MPI_Send(&myEnd, 1, MPI_INT, i, 1, MPI_COMM_WORLD);
 			MPI_Send(&chunkSize, 1, MPI_INT, i, 2, MPI_COMM_WORLD);
-			myStart = 0;
-			myEnd = 0;
 			printf("Sent chunk data to node %d\n", i);
 		}
 		int sender = -1;
 		MPI_Status status;
-		int *outBuf = (int*)malloc((chunkSize+1)*sizeof(int));
-		int ia = 0;
 		for (i = 1; i<commSize; i++)
 		{
-			int position = 0;
 			MPI_Recv(tempMSet, chunkSize, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
-			for (ia = 0; ia<chunkSize; ia++)
-				if (tempMSet[ia] != 0) printf("ON MASTER: tempMSet[%d]:\t%d\n", ia, tempMSet[ia]);
 			sender = status.MPI_SOURCE;
 			printf("Recieved chunk from %d\n",sender);
-			memcpy(MSet+(chunkSize*(sender-1)), tempMSet, chunkSize);
+			memcpy(MSet+(chunkSize*(sender-1)), tempMSet, chunkSize*sizeof(int));
 			printf("Memcpy'd data from rank %d into MSet\n", sender);
 			sender = -1;
 		}
@@ -178,19 +171,14 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 			//printf("localMSet[%d]\n", (ix));	
 			
 			if (dist < delta)
-				localMSet[count*(rowSize)+ix] = 1;
+				localMSet[count*(nx)+ix] = 1;
 			else
-				localMSet[count*(rowSize)+ix] = 0;
+				localMSet[count*(nx)+ix] = 0;
 				
 			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 		count++;
 	}
 	printf("Sending calculated set back to master from rank %d\n", myRank);
-	for (i = 0; i<(chunkSize); i++)
-	{
-		if (localMSet[i] != 0)
-			printf("tempMSet[%d] from rank %d = \t %d\n", i, myRank, localMSet[i]);
-	}
 	MPI_Send(localMSet, chunkSize, MPI_INT, 0, 3, MPI_COMM_WORLD);
 }
