@@ -19,7 +19,6 @@ int commSize;
 
 void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int calcmaxiter);
 void calcSet(int startIdx, int endIdx, int chunkSize);
-void master(int *MSet, MPI_Status status);
 
 int main(int argc, char *argv[])
 {
@@ -43,8 +42,8 @@ int main(int argc, char *argv[])
 		int* tempMSet = (int*)malloc((chunkSize+1)*nx*sizeof(int));
 		for (i = 1; i<commSize; i++)
 		{
-			myStart = chunkSize*(i-1);
-			myEnd = (chunkSize*i)-1;
+			myStart = (chunkSize/ny)*(i-1);
+			myEnd = ((chunkSize/ny)*i)-1;
 		
 			//send to each node
 			//tag 0 = startIdx
@@ -61,13 +60,16 @@ int main(int argc, char *argv[])
 		int sender = -1;
 		MPI_Status status;
 		int *outBuf = (int*)malloc((chunkSize+1)*sizeof(int));
+		int ia = 0;
 		for (i = 1; i<commSize; i++)
 		{
 			int position = 0;
-			MPI_Recv(tempMSet, chunkSize+1, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
+			MPI_Recv(tempMSet, chunkSize, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
+			for (ia = 0; ia<chunkSize; ia++)
+				if (tempMSet[ia] != 0) printf("ON MASTER: tempMSet[%d]:\t%d\n", ia, tempMSet[ia]);
 			sender = status.MPI_SOURCE;
 			printf("Recieved chunk from %d\n",sender);
-			memcpy(MSet+(chunkSize*sender), tempMSet, chunkSize);
+			memcpy(MSet+(chunkSize*(sender-1)), tempMSet, chunkSize);
 			printf("Memcpy'd data from rank %d into MSet\n", sender);
 			sender = -1;
 		}
@@ -85,7 +87,7 @@ int main(int argc, char *argv[])
 		//printf("Rank: %d\tmyStart: %d\tmyEnd:%d\tchunkSize:%d\n", myRank, myStart, myEnd, chunkSize);
 		calcSet(myStart, myEnd, chunkSize);
 	}
-	//MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
 	if (myRank == 0)
 	{
 		printf("Starting to write image\n");
@@ -119,9 +121,10 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 	int rowSize = ny/(commSize-1);
-	int *localMSet = (int*)malloc((chunkSize+1)*nx*sizeof(int));
+	int *localMSet = (int*)malloc((chunkSize)*sizeof(int));
 	//Start OpenMP code
 //	#pragma omp parallel shared(localMSet) firstprivate(iter,cx,cy,iy,ix,i,x,y,x2,y2,temp,xder,yder,dist,yorbit,xorbit,flag) num_threads(THREAD_NUM)
+	int count = 0;
 	for (iy = startIdx; iy<endIdx; iy++)
 	{
 		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
@@ -175,18 +178,19 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 			//printf("localMSet[%d]\n", (ix));	
 			
 			if (dist < delta)
-				localMSet[iy*(rowSize)+ix] = 1;
+				localMSet[count*(rowSize)+ix] = 1;
 			else
-				localMSet[iy*(rowSize)+ix] = 0;
+				localMSet[count*(rowSize)+ix] = 0;
 				
 			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
+		count++;
 	}
 	printf("Sending calculated set back to master from rank %d\n", myRank);
-	for (i = 0; i<(chunkSize+1); i++)
+	for (i = 0; i<(chunkSize); i++)
 	{
 		if (localMSet[i] != 0)
 			printf("tempMSet[%d] from rank %d = \t %d\n", i, myRank, localMSet[i]);
 	}
-	MPI_Send(localMSet, ((endIdx-startIdx)), MPI_INT, 0, 3, MPI_COMM_WORLD);
+	MPI_Send(localMSet, chunkSize, MPI_INT, 0, 3, MPI_COMM_WORLD);
 }
