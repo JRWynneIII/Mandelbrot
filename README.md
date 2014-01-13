@@ -5,5 +5,8 @@ Creates an image (TIFF) of a mandelbrot fractal. Parallelized using MPI and Open
 
 NOTE:
   libTIFF must be compiled and availible in your home directory (for Titan) or on the machine (Lens and Rhea). If you need to build libTIFF yourself, use the Ruby script in the buildTiff directory. 
-```chmod +x buildTiff.rb
-```./buildTiff.rb
+
+```
+chmod +x buildTiff.rb
+./buildTiff.rb
+```
