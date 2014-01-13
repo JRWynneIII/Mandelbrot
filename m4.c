@@ -9,8 +9,8 @@
 #include <mpi.h>
 #include <string.h>
 
-#define nx 2000		//Resolution in the X dimention
-#define ny 2000		//Resolution in the Y dimention
+#define nx 50000		//Resolution in the X dimention
+#define ny 50000		//Resolution in the Y dimention
 #define THREAD_NUM 16
 
 int maxiter= 2000;			//max number of iterations to test for an escaping point
@@ -27,6 +27,14 @@ int main(int argc, char *argv[])
 	memset(MSet, 0, nx*ny*sizeof(int));
 	MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+	if (myRank == 0)
+	{
+		if ((nx*ny)%(commSize-1) != 0)
+		{
+			printf("Incompatable number of processes requested\nExiting...\n");
+			exit(EXIT_FAILURE);
+		}
+	}
 	int totalRes = (nx*ny);
 	int chunkSize = totalRes/(commSize-1);
 
@@ -43,7 +51,7 @@ int main(int argc, char *argv[])
 		for (i = 1; i<commSize; i++)
 		{
 			myStart = (chunkSize/ny)*(i-1);
-			myEnd = (myStart + (chunkSize/ny))-1;
+			myEnd = (myStart + (chunkSize/ny));
 		
 			//send to each node
 			//tag 0 = startIdx
@@ -91,7 +99,6 @@ int main(int argc, char *argv[])
 
 void calcSet(int startIdx, int endIdx, int chunkSize)
 {
-	int *buffer = (int*)malloc((chunkSize+1)*sizeof(int));
 	int position = 0;
 	printf("Calculating Mandelbrot chunk on process %d\n", myRank);
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
