@@ -6,4 +6,5 @@
 *.tif*
 *.txt
 *.swo
-mandel.*
+mandel.o*
+MF*
