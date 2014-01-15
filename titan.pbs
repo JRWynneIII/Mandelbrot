@@ -1,0 +1,10 @@
+#!/bin/bash
+#PBS -A <PROJID>
+#PBS -N mandel
+#PBS -j oe
+#PBS -l walltime=0:20:00,nodes=6
+
+cd $MEMBERWORK/<PROJID>
+
+date
+aprun -n6 ./a.out

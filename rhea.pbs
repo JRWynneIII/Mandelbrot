@@ -1,0 +1,10 @@
+#!/bin/bash
+#PBS -A <PROJID>
+#PBS -N mandel
+#PBS -j oe
+#PBS -l walltime=0:10:00,nodes=6:ppn=16
+
+cd $MEMBERWORK/<PROJID>
+
+date
+mpiexec -n 6 a.out
