@@ -9,15 +9,13 @@
 
 #define nx 5000
 #define ny 5000
-int MSet[nx][ny];
+
+void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int calcmaxiter);
 
 void main(int argc, int *argv[])
 {
+	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	int maxiter= 2000;			//max number of iterations
-//	int (*MSet)[nx] = malloc(sizeof(int[nx][ny]));
-	//int e;
-	//for (e = 0; e<=(ny); e++)
-	//	MSet[e] = malloc(sizeof(int)*nx);
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
 	int ymin=-2, ymax= 2;			//low and high y-value of image window
 	double threshold = 1.0;
@@ -90,9 +88,9 @@ void main(int argc, int *argv[])
 			}
 
 			if (dist < delta)
-				MSet[iy][ix] = 1;
+				MSet[iy * ny + ix] = 1;
 			else
-				MSet[iy][ix] = 0;
+				MSet[iy * ny + ix] = 0;
 
 			//printf("MSET:%d\n",MSet[ix][iy]);
 		}

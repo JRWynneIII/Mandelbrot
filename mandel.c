@@ -9,8 +9,8 @@
 #include <mpi.h>
 #include <string.h>
 
-#define nx 9000		//Resolution in the X dimention
-#define ny 9000		//Resolution in the Y dimention
+#define nx 5000		//Resolution in the X dimention
+#define ny 5000		//Resolution in the Y dimention
 
 int maxiter= 2000;			//max number of iterations to test for an escaping point
 int myRank;
@@ -123,7 +123,7 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 	int *localMSet = (int*)malloc((chunkSize)*sizeof(int));
 	//Start OpenMP code
 	int count = 0;
-	#pragma omp parallel for shared(localMSet) 
+	#pragma omp for  
 	for (iy = startIdx; iy<endIdx; iy++)
 	{
 		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
