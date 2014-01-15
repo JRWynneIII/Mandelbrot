@@ -11,7 +11,6 @@
 
 #define nx 9000		//Resolution in the X dimention
 #define ny 9000		//Resolution in the Y dimention
-#define THREAD_NUM 8
 
 int maxiter= 2000;			//max number of iterations to test for an escaping point
 int myRank;
