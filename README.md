@@ -1,20 +1,19 @@
 Parallel Mandelbrot
 ---
 
-Creates an image (TIFF) of a mandelbrot fractal. This code is parallelized using MPI and OpenMP. The resolution is changed by editing the `nx` and `ny` variables and changing `maxiter` will change how many iterations are performed before determining if the point escapes or not.
+Creates an image (TIFF) of a mandelbrot fractal. This code is parallelized using MPI and OpenMP. The resolution is changed by editing the `nx` and `ny` variables and changing `maxiter` will change how many iterations are performed before determining if the point escapes or not. For more information about the algorithm used in this code, refer to http://mrob.com/pub/muency/distanceestimator.html
 
 ###Building libTIFF
 ---
 libTIFF must be compiled and availible in your home directory (for Titan). You can skip this section if you're compiling and running on Rhea. If you need to build libTIFF yourself, use the Ruby script in the buildTiff directory.
 
 ```
-chmod +x buildTiff.rb
 ./buildTiff.rb
 ```
 
 ###Compiling on Titan
 ---
-To compile run...
+Before you can compile on Titan, the makefile needs to be edited and < PROJID > needs to be changed to the appropriate project id. To compile run...
 
 `make titanSerial` (for serial version)
 
@@ -24,7 +23,7 @@ To compile run...
 
 ###Compiling on Rhea
 ---
-To compile on Rhea run...
+Before you can compile on Rhea, the makefile needs to be edited and < PROJID > needs to be changed to the appropriate project id. To compile on Rhea run...
 
 `make rheaSerial` (for serial version)
 
@@ -52,16 +51,16 @@ qsub -I -V -A< PROJID > -lnodes=< number of nodes needed >,walltime=2:00:00
 Don't forget to replace `< PROJID >` and `< number of nodes needed >` with your project ID and number of nodes, respectively. When in your interactive job, run
 
 ```
-aprun -n<number of processes> ./a.out
+aprun -n<number of processes> ./mandelbrot
 ```
 
 or on Rhea, run
 
 ```
-mpirun -n<number of processes> a.out
+mpirun -n<number of processes> mandelbrot
 ```
 
-again replacing < number of processes > with the number of processes you want to run. Running this will create a TIFF image in your $MEMBERWORK/< PROJID > directory. The image will look like this:
+again replacing < number of processes > with the number of processes you want to run. Running this will create a TIFF image in your $MEMBERWORK/< PROJID > directory. The image will be called `output.tif` and will look like this:
 
 ![The Mandelbrot](https://raw2.github.com/JRWynneIII/Mandelbrot/master/example.png)
 
