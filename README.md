@@ -63,7 +63,5 @@ mpirun -n<number of processes> a.out
 
 again replacing < number of processes > with the number of processes you want to run. Running this will create a TIFF image in your $MEMBERWORK/< PROJID > directory. The image will look like this:
 
-![alt text][frac]
-[frac]: https://github.com/JRWynneIII/Mandelbrot/blob/master/example.tif "A 9000x9000 pixel image of a Mandelbrot fractal"
-
+<p align="center"><img src="https://raw2.github.com/JRWynneIII/Mandelbrot/master/example.png" alt="A 9000x9000 pixel image of a Mandelbrot fractal" height="400px" width="400px"/></p>
   
