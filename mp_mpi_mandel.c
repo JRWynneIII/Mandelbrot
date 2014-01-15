@@ -24,8 +24,10 @@ int main(int argc, char *argv[])
 	MPI_Init(&argc, &argv);
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	memset(MSet, 0, nx*ny*sizeof(int));
+	//Get rank number and total comm size
 	MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+	//Check to see if the resolution and number of processes are compatable.
 	if (myRank == 0)
 	{
 		if ((nx*ny)%(commSize-1) != 0)
@@ -64,6 +66,7 @@ int main(int argc, char *argv[])
 		}
 		int sender = -1;
 		MPI_Status status;
+		//Recieve the completed chunks and memcpy it onto MSet
 		for (i = 1; i<commSize; i++)
 		{
 			MPI_Recv(tempMSet, chunkSize, MPI_INT, MPI_ANY_SOURCE, 3, MPI_COMM_WORLD, &status);
@@ -74,6 +77,7 @@ int main(int argc, char *argv[])
 			sender = -1;
 		}
 	}	
+	//Recive the data from rank 0 (where in the large set the desired chunk is located and size of the chunk)
 	else if (myRank != 0)
 	{
 		int myStart = 0;
@@ -84,15 +88,16 @@ int main(int argc, char *argv[])
 		MPI_Recv(&myEnd, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, &status);
 		MPI_Recv(&chunkSize, 1, MPI_INT, 0, 2, MPI_COMM_WORLD, &status);
 		//DO THE MANDEL
-		//printf("Rank: %d\tmyStart: %d\tmyEnd:%d\tchunkSize:%d\n", myRank, myStart, myEnd, chunkSize);
 		calcSet(myStart, myEnd, chunkSize);
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
+	//Write the image only on rank 0
 	if (myRank == 0)
 	{
 		printf("Starting to write image\n");
 		calc_pixel_value(nx,ny,MSet,maxiter);
 	}
+	//End the MPI instance
 	MPI_Finalize();
 }
 
@@ -170,21 +175,18 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 				if (flag == false)
 				{
 					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
-					//printf("DIST:%d\n", dist);
 				}	
 	
 			}
-			//printf("localMSet[%d]\n", (ix));	
-			
 			if (dist < delta)
 				localMSet[count*(nx)+ix] = 1;
 			else
 				localMSet[count*(nx)+ix] = 0;
 				
-			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 		count++;
 	}
 	printf("Sending calculated set back to master from rank %d\n", myRank);
+	//Send the array back to be put into MSet
 	MPI_Send(localMSet, chunkSize, MPI_INT, 0, 3, MPI_COMM_WORLD);
 }

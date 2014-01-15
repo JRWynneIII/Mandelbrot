@@ -6,6 +6,8 @@
 #include <tiffio.h>
 #include <stdbool.h>
 #include <float.h>
+
+//Define x and y resolution
 #define nx 1000
 #define ny 1000
 
@@ -13,6 +15,8 @@ void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int c
 
 int main(int argc, char *argv[])
 {
+	//MSet is where the info for the image is stored. 1 means its part of the fractal, 0 
+	//means it isn't
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	int maxiter= 2000;			//max number of iterations
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
@@ -35,6 +39,9 @@ int main(int argc, char *argv[])
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 	int size =0;
+	//Simply use the omp for pragma here to declare this region as an openMP for loop
+	//This will divide up the iterations between threads and execute them in parallel
+	//This region is VERY easily parallelized because there is NO data shared between the loop iterations.
 	#pragma omp for
 	for (iy = 0; iy<ny; iy++)
 	{	
@@ -82,7 +89,6 @@ int main(int argc, char *argv[])
 				if (flag == false)
 				{
 					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
-					//printf("DIST:%d\n", dist);
 				}	
 
 			}
@@ -91,9 +97,8 @@ int main(int argc, char *argv[])
 				MSet[iy * ny + ix] = 1;
 			else
 				MSet[iy * ny + ix] = 0;
-	
-			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 	}
+	//Write the Tiff image
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }

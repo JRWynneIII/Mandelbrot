@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <float.h>
 
+//Define x and y resolution
 #define nx 5000
 #define ny 5000
 
@@ -14,6 +15,8 @@ void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int c
 
 void main(int argc, int *argv[])
 {
+	//MSet is where the info for the image is stored. 1 means its part of the fractal, 0 
+	//means it isn't
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	int maxiter= 2000;			//max number of iterations
 	int xmin=-3, xmax= 1; 		//low and high x-value of image window
@@ -36,6 +39,7 @@ void main(int argc, int *argv[])
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 
+	//Use a nested for loop here because we're technically working with a 2d array (image/plane)
 	for (iy=0; iy<=(ny-1); iy++)
 	{
 		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
@@ -52,7 +56,7 @@ void main(int argc, int *argv[])
 			yder = 0.0;
 			dist = 0.0;
 			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
-
+			//Determine if the point escapes or not
 			for (iter =0; iter<=maxiter; iter++)
 			{
 				//Begin normal mandel level set process
@@ -82,7 +86,6 @@ void main(int argc, int *argv[])
 				if (flag == false)
 				{
 					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
-					//printf("DIST:%d\n", dist);
 				}	
 
 			}
@@ -91,9 +94,8 @@ void main(int argc, int *argv[])
 				MSet[iy * ny + ix] = 1;
 			else
 				MSet[iy * ny + ix] = 0;
-
-			//printf("MSET:%d\n",MSet[ix][iy]);
 		}
 	}
+	//Finally write the image
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }
