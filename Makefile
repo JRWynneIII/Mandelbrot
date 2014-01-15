@@ -41,7 +41,7 @@ titanOMP: mpmandel.c tiff.c
 	cp a.out $(MEMBERWORK)/stf007
 
 rheaOMP: mpmandel.c tiff.c
-	cc $(CFLAGS) mpmandel.c tiff.c -ltiff -o a.out
+	mpicc $(CFLAGS) mpmandel.c tiff.c -ltiff -o a.out
 	cp a.out $(MEMBERWORK)/stf007
 
 titanHybrid: mandel.c tiff.c
@@ -49,7 +49,7 @@ titanHybrid: mandel.c tiff.c
 	cp a.out $(MEMBERWORK)/stf007
 
 rheaHybrid: mandel.c tiff.c
-	cc $(CFLAGS) mandel.c tiff.c -ltiff -o a.out
+	mpicc $(CFLAGS) mandel.c tiff.c -ltiff -o a.out
 	cp a.out $(MEMBERWORK)/stf007
 
 clean:
