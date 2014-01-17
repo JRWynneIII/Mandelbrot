@@ -1,7 +1,12 @@
 Parallel Mandelbrot
 ---
 
-Creates an image (TIFF) of a mandelbrot fractal. This code is parallelized using MPI and OpenMP. The resolution is changed by editing the `nx` and `ny` variables and changing `maxiter` will change how many iterations are performed before determining if the point escapes or not. For more information about the algorithm used in this code, refer to http://mrob.com/pub/muency/distanceestimator.html
+###Introduction
+---
+
+This project creates an image (TIFF) of a Mandelbrot fractal. This code is parallelized using MPI and OpenMP. The resolution is changed by editing the `nx` and `ny` variables and changing `maxiter` will change how many iterations are performed before determining if the point escapes or not. The project is split up into three different files: a serial version (serial\_mandel.c), an OpenMP parallelized verion (mp\_mandel.c), and a hybrid OpenMP and MPI parallelized version (mp\_mpi\_mandel.c). The algorithm used to calculate the Mandelbrot set is the Distance Estimation method. This is a point by point calculation where each point maps to one pixel in the final image. The code will iterate over each point and run it through a set of mathematical instructions that will determine weather if the point "escapes" (takes few iterations before the value is over the escape "threshold") or weather it doesn't. If it doesn't escape, then it is considered part of the Mandelbrot set and the pixel is painted black. If the point escapes very slowly (takes many iterations to escape) then that point will be labeled as part of the fractal. This is the Distance Estimation part. By doing this, it will "reveal" more of the set than the standard method without the Distance Estimation.
+
+For more information about the algorithm used in this code, refer to http://mrob.com/pub/muency/distanceestimator.html or http://en.wikipedia.org/wiki/Mandelbrot_set#Distance_estimates
 
 ###Building libTIFF
 ---
