@@ -29,8 +29,24 @@ This tells the compiler to seperate the enclosed for loop's iterations and run t
 Again, once the calculations are complete, the same function is called to write the image out.
 
 ####Hybrid OpenMP and MPI
-This code is available in the file mp_mpi_mandel.c. 
+This code is available in the file mp_mpi_mandel.c. At the beginning, the MPI instance is created by calling
+```C
+MPI_Init(&argc, &argv);
+```
+Again, a two dimensional matrix is allocated. Next, the image is broken up into sets of rows based on the number of MPI ranks minus one. Rank 0 will then send the starting row number and ending row number as well as the size of total points to be calcuated upon to the appropriate process. 
 
+On each compute rank (all processes except rank 0) a smaller matrix is allocated based upon the total number of points to be calculated (or `chunkSize`). 
+
+The points are then iterated over the same way as in the OpenMP version. While the calcuations are going on on ranks 1-n, rank 0 is waiting to recieve the completed chunks of the image. 
+
+Once the calculation is complete, that rank will send the matrix to rank 0 and will then be copied onto the large matrix at the appropriate place, based upon the sending rank number. 
+
+Once all processes have finished and sent their respective matrcies, rank 0 will finish assembling the overall image matrix and pass it to the image writing funcion defined in tiff.c. The image will then be written out to the current directory. 
+
+Finally the MPI instance will be ended by calling
+```C
+MPI_Finalize();
+```
 
 ###Building libTIFF
 ---
