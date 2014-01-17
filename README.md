@@ -13,23 +13,23 @@ The code will perform an iterative calculation at each point that will determine
 The Distance Estimator comes into play if the point escapes very slowly (takes many iterations before it escapes). For visualization purposes, we consider these points to be part of the set. By doing this, it will "reveal" more of the set than the standard method. 
 
 ####Serial
-This code is located in serial_mandelbrot.c. At the beginning of the serial code, a 2 dimensional grid is allocated in memory. This grid will hold either a 1 or 0 in each element to represent wheather a point is in the set or not. 
+This code is located in `serial_mandelbrot.c`. At the beginning of the serial code, a 2 dimensional grid is allocated in memory. This grid will hold either a 1 or 0 in each element to represent wheather a point is in the set or not. 
 
 The code then enters a nested loop region that will iterate over each point (element in the grid) and perform the iterative Distance Estimator calculation. When the calculation determines if the point escapes, it breaks out of the loop and writes a "0" in the grid for that point. Else, it will infer that the point does not escape and will write a "1" in the grid. 
 
-After iterating over each point, the grid is then passed to a function (in tiff.c) that will write out a TIFF image to the current working directory.
+After iterating over each point, the grid is then passed to a function (in `tiff.c`) that will write out a TIFF image to the current working directory.
 
 ####OpenMP
-The OpenMP parallelized version of this code is availible in the file openmp\_mandelbrot.c. The code here is nearly identical to the serial version except for one very important difference. As you can see on line 45 it reads
+The OpenMP parallelized version of this code is availible in the file `openmp\_mandelbrot.c.` The code here is nearly identical to the serial version except for one very important difference. As you can see on line 45 it reads
 ```C
 #pragma omp for
 ```
-This tells the compiler to seperate the enclosed for loop's iterations and run them in parallel on different threads. This is possible because the calculation for each point is independant on any of the surrounding points' calculations.
+This tells the compiler to seperate the enclosed `for()` loop's iterations and run them in parallel on different threads. This is possible because the calculation for each point is independant on any of the surrounding points' calculations.
 
 Again, once the calculations are complete, the same function is called to write the image out.
 
 ####Hybrid OpenMP and MPI
-This code is available in the file openmp_mpi_mandelbrot.c. At the beginning, the MPI instance is created by calling
+This code is available in the file `openmp_mpi_mandelbrot.c` At the beginning, the MPI instance is created by calling
 ```C
 MPI_Init(&argc, &argv);
 ```
@@ -41,7 +41,7 @@ The points are then iterated over the same way as in the OpenMP version. While t
 
 Once the calculation is complete, that rank will send the grid to rank 0 and will then be copied onto the large grid at the appropriate place, based upon the sending rank number. 
 
-Once all processes have finished and sent their respective grids, rank 0 will finish assembling the overall image grid and pass it to the image writing funcion defined in tiff.c. The image will then be written out to the current directory. 
+Once all processes have finished and sent their respective grids, rank 0 will finish assembling the overall image grid and pass it to the image writing funcion defined in `tiff.c`. The image will then be written out to the current directory. 
 
 Finally the MPI instance will be ended by calling
 ```C
