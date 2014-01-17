@@ -15,35 +15,37 @@ The Distance Estimator comes into play if the point escapes very slowly (takes m
 ####Serial
 This code is located in serial_mandel.c. At the beginning of the serial code, a 2 dimensional grid is allocated in memory. This grid will hold either a 1 or 0 in each element to represent wheather a point is in the set or not. 
 
-The code then enters a nested loop region that will iterate over each point (element in the grid) and perform the iterative Distance Estimator calculation. When the calculation determines if the point escapes, it breaks out of the loop and writes a "0" in the grid for that point. Else, it will infer that the point does not escape and will write a "1" in the grid. 
+The code then iterates over each point in the grid and performs the Distance Estimator calculation. When the calculation determines if the point escapes, it breaks out of the loop and writes a "0" in the grid for that point. Else, it will infer that the point does not escape and will write a "1" in the grid. 
 
 After iterating over each point, the grid is then passed to a function (in tiff.c) that will write out a TIFF image to the current working directory.
 
 ####OpenMP
-The OpenMP parallelized version of this code is availible in the file mp\_mandel.c. The code here is nearly identical to the serial version except for one very important difference. As you can see on line 45 it reads
+The OpenMP parallelized version of this code is availible in the file mp\_mandel.c. The important difference fom the serial version is the following OpenMP pragma statement. As you can see on line 45 it reads
 ```C
 #pragma omp for
 ```
-This tells the compiler to seperate the enclosed for loop's iterations and run them in parallel on different threads. This is possible because the calculation for each point is independant on any of the surrounding points' calculations.
+This tells the compiler to seperate the enclosed for loop's iterations and run them in parallel threads. This is possible because the calculation for each point is independant on any of the surrounding points' calculations.
 
-Again, once the calculations are complete, the same function is called to write the image out.
+Again, once the calculations are complete, we rely on `tiff.c` to save the image. 
 
 ####Hybrid OpenMP and MPI
 This code is available in the file mp_mpi_mandel.c. At the beginning, the MPI instance is created by calling
 ```C
 MPI_Init(&argc, &argv);
 ```
-Again, a two dimensional grid is allocated. Next, the image is broken up into sets of rows based on the number of MPI ranks minus one. Rank 0 will then send the starting row number and ending row number as well as the size of total points to be calcuated upon to the appropriate process. 
+Again, a two dimensional grid is allocated. Next, the image is broken up into sets of rows based on the number of MPI ranks. Rank 0 will then send the starting row number and ending row number as well as the total number of points to be calcuated upon to the appropriate process. 
 
-On each compute rank (all processes except rank 0) a smaller grid is allocated based upon the total number of points to be calculated (or `chunkSize`). 
+The ranks are theoretically divided into 2 groups of processes: manager and compute. Rank 0 is the only process that belongs to the manager group whereas the rest are compute ranks.
 
-The points are then iterated over the same way as in the OpenMP version. While the calcuations are going on on ranks 1-n, rank 0 is waiting to recieve the completed chunks of the image. 
+On each compute rank a smaller grid is allocated based upon the total number of points to be calculated (or `chunkSize`). 
 
-Once the calculation is complete, that rank will send the grid to rank 0 and will then be copied onto the large grid at the appropriate place, based upon the sending rank number. 
+The points are then iterated over the same way as in the OpenMP version. While the calcuations are being performed on the compute ranks, the manager rank is waiting to recieve the completed chunks of the image. 
 
-Once all processes have finished and sent their respective grids, rank 0 will finish assembling the overall image grid and pass it to the image writing funcion defined in tiff.c. The image will then be written out to the current directory. 
+Once the calculation is complete, that rank will send the grid to the manager rank and will then be copied onto the large grid at the appropriate place, based upon the sending rank number. 
 
-Finally the MPI instance will be ended by calling
+Once all processes have finished and sent their respective grids, the manager process will finish assembling the overall image grid and pass it to the image writing funcion defined in tiff.c. The image will then be written out to the current directory. 
+
+Finally we wrap up by calling
 ```C
 MPI_Finalize();
 ```
