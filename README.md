@@ -20,19 +20,11 @@ The code then iterates over each point in the grid and performs the Distance Est
 After iterating over each point, the grid is then passed to a function (in `tiff.c`) that will write out a TIFF image to the current working directory.
 
 ####OpenMP
-<<<<<<< HEAD
 The OpenMP parallelized version of this code is availible in the file mp\_mandel.c. The important difference fom the serial version is the following OpenMP pragma statement. As you can see on line 45 it reads
 ```C
 #pragma omp for
 ```
-This tells the compiler to seperate the enclosed for loop's iterations and run them in parallel threads. This is possible because the calculation for each point is independant on any of the surrounding points' calculations.
-=======
-The OpenMP parallelized version of this code is available in the file `openmp\_mandelbrot.c.` The code here is nearly identical to the serial version except for one very important difference. As you can see on line 45 it reads
-```C
-#pragma omp for
-```
 This tells the compiler to separate the enclosed `for()` loop's iterations and run them in parallel on different threads. This is possible because the calculation for each point is independent on any of the surrounding points' calculations.
->>>>>>> 696b23c15d44d2f7ce5d52fbfe75f4ca4bc51ab9
 
 Again, once the calculations are complete, we rely on `tiff.c` to save the image. 
 
@@ -41,29 +33,17 @@ This code is available in the file `openmp_mpi_mandelbrot.c` At the beginning, t
 ```C
 MPI_Init(&argc, &argv);
 ```
-<<<<<<< HEAD
 Again, a two dimensional grid is allocated. Next, the image is broken up into sets of rows based on the number of MPI ranks. Rank 0 will then send the starting row number and ending row number as well as the total number of points to be calcuated upon to the appropriate process. 
-=======
-Again, a two dimensional grid is allocated. Next, the image is broken up into sets of rows based on the number of MPI ranks minus one. Rank 0 will then send the starting row number and ending row number as well as the size of total points to be calculated upon to the appropriate process. 
->>>>>>> 696b23c15d44d2f7ce5d52fbfe75f4ca4bc51ab9
 
 The ranks are theoretically divided into 2 groups of processes: manager and compute. Rank 0 is the only process that belongs to the manager group whereas the rest are compute ranks.
 
-<<<<<<< HEAD
 On each compute rank a smaller grid is allocated based upon the total number of points to be calculated (or `chunkSize`). 
-=======
-The points are then iterated over the same way as in the OpenMP version. While the calculations are going on on ranks 1-n, rank 0 is waiting to receive the completed chunks of the image. 
->>>>>>> 696b23c15d44d2f7ce5d52fbfe75f4ca4bc51ab9
 
 The points are then iterated over the same way as in the OpenMP version. While the calcuations are being performed on the compute ranks, the manager rank is waiting to recieve the completed chunks of the image. 
 
-<<<<<<< HEAD
 Once the calculation is complete, that rank will send the grid to the manager rank and will then be copied onto the large grid at the appropriate place, based upon the sending rank number. 
-=======
-Once all processes have finished and sent their respective grids, rank 0 will finish assembling the overall image grid and pass it to the image writing function defined in `tiff.c`. The image will then be written out to the current directory. 
->>>>>>> 696b23c15d44d2f7ce5d52fbfe75f4ca4bc51ab9
 
-Once all processes have finished and sent their respective grids, the manager process will finish assembling the overall image grid and pass it to the image writing funcion defined in tiff.c. The image will then be written out to the current directory. 
+Once all processes have finished and sent their respective grids, rank 0 will finish assembling the overall image grid and pass it to the image writing function defined in `tiff.c`. The image will then be written out to the current directory. 
 
 Finally we wrap up by calling
 ```C
