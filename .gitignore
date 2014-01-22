@@ -3,7 +3,6 @@
 *.[oa]
 *.out
 *.swp
-*.tif*
 *.txt
 *.swo
 mandel.o*
