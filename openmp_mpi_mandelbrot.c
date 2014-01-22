@@ -21,10 +21,15 @@ void calcSet(int startIdx, int endIdx, int chunkSize);
 
 int main(int argc, char *argv[])
 {
+	//First of all, initialize the MPI region. You can only call MPI functions (send, recv, gather, scatter, etc)
+	//from inside this region (between MPI_Init() and MPI_Finalize())
 	MPI_Init(&argc, &argv);
+	//Here we create a 1 dimensional array that will be the total size of the image (in pixels). Because
+	//this array can get so big, we need to declare it on the heap and NOT the stack (i.e. how one would normally
+	//declare an array. So we use malloc();
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	memset(MSet, 0, nx*ny*sizeof(int));
-	//Get rank number and total comm size
+	//Get rank number and total number of processes that were launched
 	MPI_Comm_size(MPI_COMM_WORLD, &commSize);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 	//Check to see if the resolution and number of processes are compatable.
@@ -44,7 +49,9 @@ int main(int argc, char *argv[])
 
 	int i;
 	MPI_Barrier(MPI_COMM_WORLD);
-	//calculate exactly 1/commSize to be processed on each node; send; wait for completed data
+	//This only happens on the manager rank (rank 0). Basically it will compute the boundaries of the section of MSet each of the other
+	//compute nodes will process and the size of the region and send them to the appropriate process. Then it will wait (block) until it recieves
+	//the completed section of the array it was assigned. When its recieved it will copy it into the right place in MSet
 	if (myRank == 0)
 	{
 		int myStart = 0, myEnd = 0;
@@ -77,7 +84,8 @@ int main(int argc, char *argv[])
 			sender = -1;
 		}
 	}	
-	//Recive the data from rank 0 (where in the large set the desired chunk is located and size of the chunk)
+	//This block is only exectued on the rest of the processes. First, it will recive the data from rank 0 then Do the same calculation on the smaller
+	//set of points then send the completed region back to the manager rank.
 	else if (myRank != 0)
 	{
 		int myStart = 0;
@@ -91,7 +99,7 @@ int main(int argc, char *argv[])
 		calcSet(myStart, myEnd, chunkSize);
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
-	//Write the image only on rank 0
+	//Once the final array (MSet) is completed, it will call the same tiff writing funcion from tiff.c and write the image out as output.tif
 	if (myRank == 0)
 	{
 		printf("Starting to write image\n");
@@ -105,8 +113,10 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 {
 	int position = 0;
 	printf("Calculating Mandelbrot chunk on process %d\n", myRank);
-	int xmin=-3, xmax= 1; 		//low and high x-value of image window
-	int ymin=-2, ymax= 2;			//low and high y-value of image window
+	//Here, you can change the minimum and maximum values for the "window" that the image sees. increase the values (in sync)
+	//and you will zoom out. Decrease them, and you will effectively zoom into the image.
+	int xmin=-3, xmax= 1; 	
+	int ymin=-2, ymax= 2;
 	double threshold = 1.0;
 	double dist = 0.0;
 	int ix, iy;
@@ -127,6 +137,14 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 	int rowSize = ny/(commSize-1);
 	int *localMSet = (int*)malloc((chunkSize)*sizeof(int));
 	//Start OpenMP code
+	//We use a nested loop here to effectively traverse over each part of the grid (pixel of the image) in sequence. First, the complex values of the points are
+	//determined and then used as the basis of the computaion. Effectively, it will loop over each point (pixel) and according on how many iterations it takes for
+	//the value that the mathematical function returns on each iteration it will determine whether or not the point "escapes" to infinity (or an arbitrarily large
+	//number.) or not. If it takes few iterations to escape then it will decide that this point is NOT part of the Mandelbrot set and will put a 0 in that point's
+	//index in MSet. If it takes nearly all or all of the iterations to escape, then it will decide that the point/pixel is part of the Mandelbrot set and instead
+	//put a 1 in its place in MSet.
+	//The use of the OpenMP pragma here will divide up the iterations between threads and execute them in parallel
+	//This region is VERY easily parallelized because there is NO data shared between the loop iterations.
 	int count = 0;
 	#pragma omp for  
 	for (iy = startIdx; iy<endIdx; iy++)
@@ -145,10 +163,9 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 			yder = 0.0;
 			dist = 0.0;
 			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
-	
+			//This is the main loop that determins whether or not the point escapes or not. It breaks out of the loop when it escapes
 			for (iter =0; iter<=maxiter; iter++)
 			{
-				//Begin normal mandel level set process
 				temp = x2-y2 +cx;
 				y = 2.0*x*y+cy;
 				x = temp;
@@ -158,7 +175,7 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 				yorbit[iter+1]=y;
 				if (x2+y2>huge) break;	//if point escapes then break to next loop
 			}
-			//if the point escapes, find the distance from the set
+			//if the point escapes, find the distance from the set, just incase its close to the set. if it is, it will make it part of the set.
 			if (x2+y2>=huge)
 			{
 				xder, yder = 0;
@@ -178,6 +195,7 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 				}	
 	
 			}
+			//Assign the appropriate values to MSet in the place relating to the point in question
 			if (dist < delta)
 				localMSet[count*(nx)+ix] = 1;
 			else
@@ -187,6 +205,6 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 		count++;
 	}
 	printf("Sending calculated set back to master from rank %d\n", myRank);
-	//Send the array back to be put into MSet
+	//Send the array back to be memcpy'ed into MSet
 	MPI_Send(localMSet, chunkSize, MPI_INT, 0, 3, MPI_COMM_WORLD);
 }

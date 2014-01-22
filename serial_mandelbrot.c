@@ -15,12 +15,16 @@ void calc_pixel_value(int calcny, int calcnx, int calcMSet[calcnx*calcny], int c
 
 void main(int argc, int *argv[])
 {
-	//MSet is where the info for the image is stored. 1 means its part of the fractal, 0 
-	//means it isn't
+	//Here we create a 1 dimensional array that will be the total size of the image (in pixels). Because
+	//this array can get so big, we need to declare it on the heap and NOT the stack (i.e. how one would normally
+	//declare an array. So we use malloc();
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
 	int maxiter= 2000;			//max number of iterations
-	int xmin=-3, xmax= 1; 		//low and high x-value of image window
-	int ymin=-2, ymax= 2;			//low and high y-value of image window
+	//Here, you can change the minimum and maximum values for the "window" that the image sees. increase the values (in sync)
+	//and you will zoom out. Decrease them, and you will effectively zoom into the image.
+	int xmin=-3, xmax= 1; 	
+	int ymin=-2, ymax= 2;
+
 	double threshold = 1.0;
 	double dist = 0.0;
 	int ix, iy;
@@ -39,7 +43,12 @@ void main(int argc, int *argv[])
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 
-	//Use a nested for loop here because we're technically working with a 2d array (image/plane)
+	//We use a nested loop here to effectively traverse over each part of the grid (pixel of the image) in sequence. First, the complex values of the points are
+	//determined and then used as the basis of the computaion. Effectively, it will loop over each point (pixel) and according on how many iterations it takes for
+	//the value that the mathematical function returns on each iteration it will determine whether or not the point "escapes" to infinity (or an arbitrarily large
+	//number.) or not. If it takes few iterations to escape then it will decide that this point is NOT part of the Mandelbrot set and will put a 0 in that point's
+	//index in MSet. If it takes nearly all or all of the iterations to escape, then it will decide that the point/pixel is part of the Mandelbrot set and instead
+	//put a 1 in its place in MSet.
 	for (iy=0; iy<=(ny-1); iy++)
 	{
 		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
@@ -56,10 +65,9 @@ void main(int argc, int *argv[])
 			yder = 0.0;
 			dist = 0.0;
 			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
-			//Determine if the point escapes or not
+			//This is the main loop that determins whether or not the point escapes or not. It breaks out of the loop when it escapes
 			for (iter =0; iter<=maxiter; iter++)
 			{
-				//Begin normal mandel level set process
 				temp = x2-y2 +cx;
 				y = 2.0*x*y+cy;
 				x = temp;
@@ -69,7 +77,7 @@ void main(int argc, int *argv[])
 				yorbit[iter+1]=y;
 				if (x2+y2>huge) break;	//if point escapes then break to next loop
 			}
-			//if the point escapes, find the distance from the set
+			//if the point escapes, find the distance from the set, just incase its close to the set. if it is, it will make it part of the set.
 			if (x2+y2>=huge)
 			{
 				xder, yder = 0;
@@ -89,13 +97,13 @@ void main(int argc, int *argv[])
 				}	
 
 			}
-
+			//Assign the appropriate values to MSet in the place relating to the point in question
 			if (dist < delta)
 				MSet[iy * ny + ix] = 1;
 			else
 				MSet[iy * ny + ix] = 0;
 		}
 	}
-	//Finally write the image
+	//Finally write the image. This funcion is defined in tiff.c. Refer to that file for more indepth usage of libTiff in C.
 	calc_pixel_value(nx,ny,MSet,maxiter);
 }
