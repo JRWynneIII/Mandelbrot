@@ -20,7 +20,7 @@ The code then iterates over each point in the grid and performs the Distance Est
 After iterating over each point, the grid is then passed to a function (in `tiff.c`) that will write out a TIFF image to the current working directory.
 
 ####OpenMP
-The OpenMP parallelized version of this code is availible in the file mp\_mandel.c. The important difference fom the serial version is the following OpenMP pragma statement. As you can see on line 45 it reads
+The OpenMP parallelized version of this code is availible in the file mp\_mandel.c. The important difference fom the serial version is the following OpenMP pragma statement. As you can see on line 53 it reads
 ```C
 #pragma omp for
 ```
