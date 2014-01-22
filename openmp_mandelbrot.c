@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	//this array can get so big, we need to declare it on the heap and NOT the stack (i.e. how one would normally
 	//declare an array. So we use malloc();
 	int *MSet = (int*)malloc(nx*ny*sizeof(int));
-	int maxiter= 2000;			//max number of iterations
+	int maxiter= 2000;		
 	//Here, you can change the minimum and maximum values for the "window" that the image sees. increase the values (in sync)
 	//and you will zoom out. Decrease them, and you will effectively zoom into the image.
 	int xmin=-3, xmax= 1; 
