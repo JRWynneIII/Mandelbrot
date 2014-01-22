@@ -58,6 +58,13 @@ libTIFF must be compiled and available in your home directory (for Titan). You c
 ./buildTiff.rb
 ```
 
+If you want to install it to a directory that isn't the default, use
+```
+./buildTiff.rb --prefix /path/to/install/directory
+```
+
+NOTE: the Makefile will need to be editied to reflect this directory change!
+
 ###Compiling on Titan
 ---
 Before you can compile on Titan, the makefile needs to be edited and < PROJID > needs to be changed to the appropriate project id. To compile run...
