@@ -133,7 +133,7 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 	int rowSize = ny/(commSize-1);
 	int *localMSet = (int*)malloc((chunkSize)*sizeof(int));
   int count = 0;
-  #pragma omp parallel //firstprivate(iy,ix,iter,i,x,y,x2,y2,temp,xder,yder,dist,cy,cx,count)
+  #pragma omp parallel
   {
 	  double xorbit[maxiter+1];
 	  xorbit[0] = 0.0;
