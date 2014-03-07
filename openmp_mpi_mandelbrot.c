@@ -126,84 +126,87 @@ void calcSet(int startIdx, int endIdx, int chunkSize)
 	double temp=0.0;
 	double xder=0.0;
 	double yder=0.0;
-	double xorbit[maxiter+1];
-	xorbit[0] = 0.0;
-	double yorbit[maxiter+1];
-	yorbit[0] = 0.0;
 	double huge = 100000;
 	bool flag = false;
 	const double overflow = DBL_MAX;
 	double delta = (threshold*(xmax-xmin))/(double)(nx-1);
 	int rowSize = ny/(commSize-1);
 	int *localMSet = (int*)malloc((chunkSize)*sizeof(int));
-	//Start OpenMP code
-	//We use a nested loop here to effectively traverse over each part of the grid (pixel of the image) in sequence. First, the complex values of the points are
-	//determined and then used as the basis of the computaion. Effectively, it will loop over each point (pixel) and according on how many iterations it takes for
-	//the value that the mathematical function returns on each iteration it will determine whether or not the point "escapes" to infinity (or an arbitrarily large
-	//number.) or not. If it takes few iterations to escape then it will decide that this point is NOT part of the Mandelbrot set and will put a 0 in that point's
-	//index in MSet. If it takes nearly all or all of the iterations to escape, then it will decide that the point/pixel is part of the Mandelbrot set and instead
-	//put a 1 in its place in MSet.
-	//The use of the OpenMP pragma here will divide up the iterations between threads and execute them in parallel
-	//This region is VERY easily parallelized because there is NO data shared between the loop iterations.
-	int count = 0;
-	#pragma omp for  
-	for (iy = startIdx; iy<endIdx; iy++)
-	{
-		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
-		for (ix = 0; ix<=(nx-1); ix++)
-		{
-			iter = 0;
-			i = 0;
-			x = 0.0;
-			y = 0.0;
-			x2 = 0.0;
-			y2 = 0.0;
-			temp = 0.0;
-			xder = 0.0;
-			yder = 0.0;
-			dist = 0.0;
-			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
-			//This is the main loop that determins whether or not the point escapes or not. It breaks out of the loop when it escapes
-			for (iter =0; iter<=maxiter; iter++)
-			{
-				temp = x2-y2 +cx;
-				y = 2.0*x*y+cy;
-				x = temp;
-				x2 = x*x;
-				y2 = y*y;
-				xorbit[iter+1]=x;
-				yorbit[iter+1]=y;
-				if (x2+y2>huge) break;	//if point escapes then break to next loop
-			}
-			//if the point escapes, find the distance from the set, just incase its close to the set. if it is, it will make it part of the set.
-			if (x2+y2>=huge)
-			{
-				xder, yder = 0;
-				i = 0;
-				flag = false;
-	
-				for (i=0;i<=iter && flag==false;i++)
-				{
-					temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
-					yder = 2.0*(yorbit[i]*xder+xorbit[i]*yder);
-					xder = temp;
-					flag = fmax(fabs(xder), fabs(yder)) > overflow;
-				}
-				if (flag == false)
-				{
-					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
-				}	
-	
-			}
-			//Assign the appropriate values to MSet in the place relating to the point in question
-			if (dist < delta)
-				localMSet[count*(nx)+ix] = 1;
-			else
-				localMSet[count*(nx)+ix] = 0;
-				
-		}
-		count++;
-	}
+  int count = 0;
+  #pragma omp parallel //firstprivate(iy,ix,iter,i,x,y,x2,y2,temp,xder,yder,dist,cy,cx,count)
+  {
+	  double xorbit[maxiter+1];
+	  xorbit[0] = 0.0;
+	  double yorbit[maxiter+1];
+	  yorbit[0] = 0.0;
+  	//Start OpenMP code
+  	//We use a nested loop here to effectively traverse over each part of the grid (pixel of the image) in sequence. First, the complex values of the points are
+  	//determined and then used as the basis of the computaion. Effectively, it will loop over each point (pixel) and according on how many iterations it takes for
+  	//the value that the mathematical function returns on each iteration it will determine whether or not the point "escapes" to infinity (or an arbitrarily large
+  	//number.) or not. If it takes few iterations to escape then it will decide that this point is NOT part of the Mandelbrot set and will put a 0 in that point's
+  	//index in MSet. If it takes nearly all or all of the iterations to escape, then it will decide that the point/pixel is part of the Mandelbrot set and instead
+  	//put a 1 in its place in MSet.
+  	//The use of the OpenMP pragma here will divide up the iterations between threads and execute them in parallel
+  	//This region is VERY easily parallelized because there is NO data shared between the loop iterations.
+  	#pragma omp for
+  	for (iy = startIdx; iy<endIdx; iy++)
+  	{
+  		cy = ymin+iy*(ymax-ymin)/(double)(ny-1);
+  		for (ix = 0; ix<=(nx-1); ix++)
+  		{
+  			iter = 0;
+  			i = 0;
+  			x = 0.0;
+  			y = 0.0;
+  			x2 = 0.0;
+  			y2 = 0.0;
+  			temp = 0.0;
+  			xder = 0.0;
+  			yder = 0.0;
+  			dist = 0.0;
+  			cx = xmin +ix*(xmax-xmin)/(double)(ny-1);
+  			//This is the main loop that determins whether or not the point escapes or not. It breaks out of the loop when it escapes
+  			for (iter =0; iter<maxiter; iter++)
+  			{
+  				temp = x2-y2 +cx;
+  				y = 2.0*x*y+cy;
+  				x = temp;
+  				x2 = x*x;
+  				y2 = y*y;
+  				xorbit[iter+1]=x;
+  				yorbit[iter+1]=y;
+  				if (x2+y2>huge) break;	//if point escapes then break to next loop
+  			}
+  			//if the point escapes, find the distance from the set, just incase its close to the set. if it is, it will make it part of the set.
+  			if (x2+y2>=huge)
+  			{
+  				xder, yder = 0;
+  				i = 0;
+  				flag = false;
+  	
+  				for (i=0;i<=iter && flag==false;i++)
+  				{
+  					temp = 2.0*(xorbit[i]*xder-yorbit[i]*yder)+1;
+  					yder = 2.0*(yorbit[i]*xder+xorbit[i]*yder);
+  					xder = temp;
+  					flag = fmax(fabs(xder), fabs(yder)) > overflow;
+  				}
+  				if (flag == false)
+  				{
+  					dist=(log(x2+y2)*sqrt(x2+y2))/sqrt(xder*xder+yder*yder); 
+  				}	
+  	
+  			}
+  			//Assign the appropriate values to MSet in the place relating to the point in question
+  			if (dist < delta)
+  				localMSet[count*(nx)+ix] = 1;
+  			else
+  				localMSet[count*(nx)+ix] = 0;
+  				
+  		}
+  		count++;
+  	}
+  }
 	printf("Sending calculated set back to master from rank %d\n", myRank);
 	//Send the array back to be memcpy'ed into MSet
 	MPI_Send(localMSet, chunkSize, MPI_INT, 0, 3, MPI_COMM_WORLD);
