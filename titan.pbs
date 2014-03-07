@@ -7,4 +7,4 @@
 cd $MEMBERWORK/<PROJID>
 
 date
-aprun -n6 ./mandelbrot
+aprun -n6 -N1 ./mandelbrot
