@@ -28,28 +28,28 @@ ifdef INTEL_LICENSE_FILE
 	CFLAGS = -openmp
 endif
 
-titanSerial: serial_mandel.c tiff.c
-	cc serial_mandel.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
+titanSerial: serial_mandelbrot.c tiff.c
+	cc serial_mandelbrot.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
-rheaSerial: serial_mandel.c tiff.c
-	cc serial_mandel.c tiff.c -ltiff -o mandelbrot
+rheaSerial: serial_mandelbrot.c tiff.c
+	cc serial_mandelbrot.c tiff.c -ltiff -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
-titanOMP: mp_mandel.c tiff.c
-	cc $(CFLAGS) mp_mandel.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
+titanOMP: openmp_mandelbrot.c tiff.c
+	cc $(CFLAGS) openmp_mandelbrot.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
-rheaOMP: mp_mandel.c tiff.c
-	mpicc $(CFLAGS) mp_mandel.c tiff.c -ltiff -o mandelbrot
+rheaOMP: openmp_mandelbrot.c tiff.c
+	mpicc $(CFLAGS) openmp_mandelbrot.c tiff.c -ltiff -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
-titanHybrid: mandel.c tiff.c
-	cc $(CFLAGS) mp_mpi_mandel.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
+titanHybrid: openmp_mpi_mandelbrot.c tiff.c
+	cc $(CFLAGS) openmp_mpi_mandelbrot.c tiff.c -ltiff -I=/ccs/home/$(USER)/lib/libtiff/include -L=/ccs/home/$(USER)/lib/libtiff/lib -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
-rheaHybrid: mandel.c tiff.c
-	mpicc $(CFLAGS) mp_mpi_mandel.c tiff.c -ltiff -o mandelbrot
+rheaHybrid: openmp_mpi_mandelbrot.c tiff.c
+	mpicc $(CFLAGS) openmp_mpi_mandelbrot.c tiff.c -ltiff -o mandelbrot
 	cp mandelbrot $(MEMBERWORK)/<PROJID>
 
 clean:
