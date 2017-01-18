@@ -17,7 +17,7 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx*ny], int maxiter)
 	{
 		for (a = 0; a<nx; a++)
 		{
-			pointiter = coordArray[a*nx+i];
+			pointiter = coordArray[i*nx+a];
 			if (pointiter == 1)			//COLOR HERE
 				m_image_data[elecount] = 0;
 			else 
@@ -33,7 +33,7 @@ extern void calc_pixel_value(int nx, int ny, int coordArray[nx*ny], int maxiter)
 
 void write_tiff_bilevel(char * outputFilename, int m_width, int m_height, unsigned char m_image_data[m_width*m_height])
 {
-	int i;
+	//int i;<- not used
 	TIFF *outputname;
 	if((outputname = TIFFOpen(outputFilename, "w")) == NULL)
 	{
